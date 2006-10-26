@@ -82,7 +82,7 @@ extern RGBQUAD * BGI_palette;
 extern const char * PAGES_SECTION_NAME[2];
 
 HINSTANCE BGI_getInstance();
-int BGI_server(int width, int height, int options);
+int BGI_server(DWORD param);
 void BGI_startServer(int width, int height, int mode);
 void BGI_createPage(PAGE * page, HDC dc,HANDLE section, int width, int height);
 void BGI_initPalette();

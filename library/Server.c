@@ -231,10 +231,11 @@ void initFullScreen()
   res = ChangeDisplaySettings(&dm, CDS_FULLSCREEN);
 }
 
-int BGI_server(int width, int height, int options)
+int BGI_server(DWORD param)
 {
-  window.width = width;
-  window.height = height;
+  int options = (param >> 24) & 0xFF;
+  window.width = param & 0xFFF;
+  window.height = (param >> 12) & 0xFFF;
   
   registerClass(WINDOW_CLASS_NAME, MainWindowProc);
   registerClass(INVISIBLE_WINDOW_CLASS_NAME, InvisibleWindowProc);

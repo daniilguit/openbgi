@@ -93,21 +93,3 @@ void BGI_closeSharedObjects(SHARED_OBJECTS * sharedObjects, SHARED_STRUCT * shar
   CloseHandle(sharedObjects->serverCreatedEvent);
 }
 
-extern int _main(int argc, char ** argv);
-
-int main(int argc, char ** argv)
-{
-  if(argc > 1 && argv[1][0] == 'S')
-  {
-    int w, h,o;
-    w = atol(argv[2]);
-    h = atol(argv[3]);
-    o = atol(argv[4]);
-    FreeConsole();
-    return BGI_server(w,h,o);
-  }
-  else
-  {
-    return _main(argc, argv);
-  }
-}

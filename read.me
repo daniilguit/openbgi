@@ -3,32 +3,6 @@ Using BGI library:
 There is listed some differences in programming if you use openbgi 
 
 1.
-You MUST name your main function not 'main' but
-'_main', because entry point (method main() ) is defined in library. 
-So, if you have error like 'identifier <main> is already defined in module ...' =>
-you should rename your main function to _main;
-
-
-2.
-If you using c++, you should write special macro before you write your _main function:
-DECLARE_VOID_MAIN_VOID if you write void _main(void)
-DECLARE_VOID_MAIN_ARGS if you write void _main(int argc, char ** argv)
-DECLARE_INT_MAIN_VOID  if you write int _main(void)
-DECLARE_INT_MAIN_ARGS  if you write int _main(int argc, char ** argv)
-
-example:
-
-DECLARE_VOID_MAIN_ARGS
-
-void main(int arc, char ** argv) {
-  // do something
-}
-
-This must be done because c++ compiler appends to identifier’s name some another
-information. So if you see something like 'identifier <_main> is not found' =>
-You should write appropriate DECLARE_??? macros.
-
-3.
 Because this library is written to work simultaneously with console window, it has separate
 keyboard handling interface to not conflict with console keyboard io : 
   getch() => readkey()

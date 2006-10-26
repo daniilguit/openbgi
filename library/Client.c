@@ -61,14 +61,13 @@ static void serverPresenceChecker(DWORD w)
 
 static void serverThread(DWORD p)
 {
-  BGI_server(window.width, window.height, window.mode);
+  BGI_server(p);
 }
 
 void BGI_startServer(int width, int height, int mode)
 {
   int pc;
-  wchar_t sparams[128];
-  LPWSTR * params = CommandLineToArgvW(GetCommandLineW(), & pc);
+  char fileName[128];
   window.width = width;
   window.height = height;
   window.mode = mode;
@@ -82,12 +81,16 @@ void BGI_startServer(int width, int height, int mode)
   }
   else
   {
-#if _MSC_VER >= 1400
-    swprintf_s(sparams, sizeof(sparams) / sizeof(wchar_t), L"SERVER %i %i %i",width, height,mode);
-#else
-    _swprintf(sparams, L"SERVER %i %i %i",width, height,mode);
-#endif
-    _wspawnlp(_P_NOWAIT, params[0],L"SERVER",sparams,NULL);
+    PROCESS_INFORMATION pi;
+    BOOL r;
+    DWORD rthrID;
+    STARTUPINFO si;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+    GetModuleFileName(GetModuleHandle(NULL), fileName, sizeof(fileName) / sizeof(char));
+    r = CreateProcess(fileName, NULL, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi);
+    CreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)&BGI_server, (LPVOID)(width + (height << 12) + (mode << 24)), 0, &rthrID);
   }
   
   IPC_waitEvent(sharedObjects.serverCreatedEvent);
