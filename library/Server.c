@@ -239,6 +239,8 @@ int BGI_server(DWORD param)
   
   registerClass(WINDOW_CLASS_NAME, MainWindowProc);
   registerClass(INVISIBLE_WINDOW_CLASS_NAME, InvisibleWindowProc);
+  
+  FreeConsole();
 
   if(options & MODE_SHOW_INVISIBLE_PAGE)
   {
