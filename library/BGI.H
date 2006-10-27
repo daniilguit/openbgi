@@ -22,6 +22,13 @@
 
 #include <windows.h>
 
+#define MODE_RGB 0
+#define MODE_16  1
+#define MODE_FULLSCREEN 2
+#define MODE_RELEASE 4
+#define MODE_DEBUG 0
+#define MODE_SHOW_INVISIBLE_PAGE 8
+
 #define WM_KEYPROCESSED (WM_USER+1)
 #define WM_MYPALETTECHANGED (WM_USER + 2)
 #define WM_VISUALPAGE_CHANGED (WM_USER + 3)
@@ -39,13 +46,6 @@
 #define SHARED_STRUCT_NAME  "BGI_SharedStructName"
 #define SERVER_STARTED_EVENT_NAME "BGI_ServerStarted"
 #define PALETTE_SECTION_NAME "BGI_Palette"
-
-#define MODE_RGB 0
-#define MODE_16  1
-#define MODE_FULLSCREEN 2
-#define MODE_RELEASE 4
-#define MODE_DEBUG 0
-#define MODE_SHOW_INVISIBLE_PAGE 8
 
 #define UPDATES_PER_SECOND 2
 #define DEBUG_UPDATES_PER_SECOND 5
@@ -82,7 +82,7 @@ extern RGBQUAD * BGI_palette;
 extern const char * PAGES_SECTION_NAME[2];
 
 HINSTANCE BGI_getInstance();
-int BGI_server(DWORD param);
+void BGI_server(DWORD param);
 void BGI_startServer(int width, int height, int mode);
 void BGI_createPage(PAGE * page, HDC dc,HANDLE section, int width, int height);
 void BGI_initPalette();

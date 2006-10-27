@@ -18,12 +18,13 @@
 */
 
 #include <graphics.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-void _main(void)
+void main(void)
 {
   int gd = DETECT, gm = 0;
-  initgraph(&gd, &gm, "");
+  initgraph(&gd, &gm, "SHOW_INVISIBLE_PAGE DISABLE_DEBUG");
   printf("Hello, world\n");
   while(!anykeypressed()) {
     setpalette(3, rand() % 16);

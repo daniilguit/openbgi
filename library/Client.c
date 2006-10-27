@@ -64,6 +64,11 @@ static void serverThread(DWORD p)
   BGI_server(p);
 }
 
+DWORD static packParams(int w, int h, int mode)
+{
+  return (w & 0xFFF) | ((h & 0xFFF) << 12) + ((mode & 0xFFF) << 24);
+}
+
 void BGI_startServer(int width, int height, int mode)
 {
   int pc;
@@ -76,21 +81,20 @@ void BGI_startServer(int width, int height, int mode)
   sharedObjects.serverCreatedEvent = IPC_createEvent(SERVER_STARTED_EVENT_NAME);
   if(mode & MODE_RELEASE)
   {
-    HANDLE h = CreateThread(NULL,  0, (LPTHREAD_START_ROUTINE)serverThread, NULL, 0, 0);
+    HANDLE h = CreateThread(NULL,  0, (LPTHREAD_START_ROUTINE)serverThread, (LPVOID)packParams(width, height, mode), 0, 0);
     printf("");
   }
   else
   {
     PROCESS_INFORMATION pi;
     BOOL r;
-    DWORD rthrID;
     STARTUPINFO si;
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
     GetModuleFileName(GetModuleHandle(NULL), fileName, sizeof(fileName) / sizeof(char));
     r = CreateProcess(fileName, NULL, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi);
-    CreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)&BGI_server, (LPVOID)(width + (height << 12) + (mode << 24)), 0, &rthrID);
+    CreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)&BGI_server, (LPVOID)packParams(width, height, mode), 0, 0);
   }
   
   IPC_waitEvent(sharedObjects.serverCreatedEvent);
