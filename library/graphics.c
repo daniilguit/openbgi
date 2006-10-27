@@ -334,9 +334,9 @@ void initgraph(int * gd, int * gm, const char * path)
   if(strstr(path, "SHOW_INVISIBLE_PAGE") != NULL)
     options |= MODE_SHOW_INVISIBLE_PAGE;
   if(strstr(path, "DISABLE_DEBUG") != NULL)
-    options = MODE_RELEASE;
+    options |= MODE_RELEASE;
   else 
-    options = MODE_DEBUG;
+    options |= MODE_DEBUG;
   if(strstr(path, "RGB") != NULL)
     options |= MODE_RGB;
   if(strstr(path, "FULL_SCREEN") != NULL)
@@ -368,8 +368,6 @@ void initgraph(int * gd, int * gm, const char * path)
   updatePen();
   updateFont();
   updatePosition(0,0);
-
-  //SetFocus(GetConsoleWindow());
 }
 
 static void lineto_(int x, int y)

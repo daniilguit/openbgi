@@ -231,20 +231,30 @@ void initFullScreen()
   res = ChangeDisplaySettings(&dm, CDS_FULLSCREEN);
 }
 
-int BGI_server(DWORD param)
+HWND createWindow(LPCSTR className, LPCSTR title, UINT style)
 {
-  int options = (param >> 24) & 0xFF;
+  RECT r = {0,0,window.width,window.height};
+  HWND result = CreateWindow(className, title, style | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, BGI_getInstance(), NULL);
+  AdjustWindowRect(&r, style, FALSE);
+  SetWindowPos(result, 0, 0, 0, r.right, r.bottom, SWP_NOMOVE | SWP_NOZORDER);
+  return result;
+}
+
+void BGI_server(DWORD param)
+{
+  int options = (param >> 24) & 0xFFF;
   window.width = param & 0xFFF;
   window.height = (param >> 12) & 0xFFF;
   
   registerClass(WINDOW_CLASS_NAME, MainWindowProc);
   registerClass(INVISIBLE_WINDOW_CLASS_NAME, InvisibleWindowProc);
   
-  FreeConsole();
+  if(options & MODE_DEBUG)
+    FreeConsole();
 
   if(options & MODE_SHOW_INVISIBLE_PAGE)
   {
-    invisibleWindow = CreateWindow(INVISIBLE_WINDOW_CLASS_NAME, "Invisible page", WS_VISIBLE | WS_OVERLAPPEDWINDOW, 10, 10, window.width + 6, window.height + 25, NULL, NULL, BGI_getInstance(), NULL);
+    invisibleWindow = createWindow(INVISIBLE_WINDOW_CLASS_NAME, "Invisible page", WS_OVERLAPPEDWINDOW);
     SetTimer(invisibleWindow, 0, 1000 / DEBUG_UPDATES_PER_SECOND, NULL);
     invisibleWindowDC = GetDC(invisibleWindow);
   }
@@ -252,10 +262,12 @@ int BGI_server(DWORD param)
   if(options & MODE_FULLSCREEN)
   {
     initFullScreen();
-    window.wnd = CreateWindow(WINDOW_CLASS_NAME, "Graphics", WS_VISIBLE | WS_POPUP, 0, 0, window.width, window.height, NULL, NULL, window.instance, NULL);
+    window.wnd = CreateWindow(WINDOW_CLASS_NAME, "Graphics", WS_VISIBLE | WS_POPUP, 0, 0, window.width, window.height, NULL, NULL, BGI_getInstance(), NULL);
   }
-  else
-    window.wnd = CreateWindow(WINDOW_CLASS_NAME, "Graphics", WS_VISIBLE | WS_OVERLAPPEDWINDOW, 30, 30, window.width + 6, window.height + 25, NULL, NULL, BGI_getInstance(), NULL);
+  else 
+  {
+    window.wnd = createWindow(WINDOW_CLASS_NAME, "Graphics", WS_OVERLAPPEDWINDOW);
+  }
   
   window.dc = GetDC(window.wnd);
 
@@ -265,7 +277,9 @@ int BGI_server(DWORD param)
   IPC_raiseEvent(sharedObjects.serverCreatedEvent);
   windowLoop();
   BGI_closeSharedObjects(&sharedObjects, sharedStruct);
-  return 0;
+
+  if(options & MODE_DEBUG)
+    ExitProcess(0);
 }
 
 

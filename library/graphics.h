@@ -20,8 +20,13 @@
 #ifndef __BGI_GRAPHICS_H__
 #define __BGI_GRAPHICS_H__
 
+#ifdef _MSC_VER
+  #pragma comment(lib, "kernel32")
+  #pragma comment(lib, "user32")
+  #pragma comment(lib, "gdi32")
+#endif
+
 #include <Windows.h>
-#include "BGI.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -301,8 +306,6 @@ extern void setvisualpage(int page);
 extern void setwritemode( int mode );
 extern int textheight(const char  *textstring);
 extern int textwidth(const char  *textstring);
-
-#define _INC_CONIO
 
 extern void delay(int miliSeconds);
 extern int kbhit();
