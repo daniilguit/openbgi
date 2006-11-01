@@ -947,8 +947,13 @@ void  setactivepage(int page)
 
 void  setallpalette(const g_palettetype  * _palette)
 {
+  int i;
   CHECK_GRAPHCS_INITED
-  memcpy(&palette, _palette, sizeof(palette));
+  for(i = 0; i != _palette->size; i++)
+    BGI_palette[i] = BGI_default_palette[_palette->colors[i]];
+  SetDIBColorTable(pages[0].dc, 0, MAXCOLORS, BGI_palette);
+  SetDIBColorTable(pages[1].dc, 0, MAXCOLORS, BGI_palette);
+  SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, 0, _palette->size);
 }
 
 void  setaspectratio(int xasp, int yasp)
@@ -1013,7 +1018,10 @@ void  setpalette(int colornum, int color)
 {
   CHECK_GRAPHCS_INITED
   CHECK_COLOR_RANGE(colornum)
-  palette.colors[colornum] = color;
+  BGI_palette[colornum] = BGI_default_palette[color];
+  SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
+  SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
+  SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
 }
 
 void  setrgbpalette(int colornum, int red, int green, int blue)
@@ -1023,9 +1031,9 @@ void  setrgbpalette(int colornum, int red, int green, int blue)
   BGI_palette[colornum].rgbRed = red;
   BGI_palette[colornum].rgbGreen = green;
   BGI_palette[colornum].rgbBlue = blue;
-  SetDIBColorTable(pages[0].dc, 0, MAXCOLORS, (const RGBQUAD *)BGI_palette);
-  SetDIBColorTable(pages[1].dc, 0, MAXCOLORS, (const RGBQUAD *)BGI_palette);
-  SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, 0, 0);
+  SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
+  SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
+  SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
 }
 
 void  settextjustify(int horiz, int vert)

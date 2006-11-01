@@ -43,6 +43,7 @@ static PAGE pages[2];
 static SHARED_STRUCT * sharedStruct;
 static SHARED_OBJECTS sharedObjects;
 static int visualPage = 0;
+static int exitProcess = FALSE;
 
 static int systemKey(int key)
 {
@@ -98,8 +99,9 @@ static LRESULT MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     break;
   case WM_MYPALETTECHANGED:
-    SetDIBColorTable(pages[0].dc, 0, 16, (const RGBQUAD *)BGI_palette);
-    SetDIBColorTable(pages[1].dc, 0, 16, (const RGBQUAD *)BGI_palette);
+    SetDIBColorTable(pages[0].dc, wParam, lParam, BGI_palette + wParam);
+    SetDIBColorTable(pages[1].dc, wParam, lParam, BGI_palette + wParam);
+    updateWindow();
     break;
   case WM_LBUTTONDOWN:
     sharedStruct->mouseButton |= MOUSE_LEFTBUTTON;
@@ -154,6 +156,10 @@ static LRESULT MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         IPC_raiseEvent(sharedObjects.keyboardEvent);
       }
     }
+    break;
+  case WM_CLOSE:
+    PostQuitMessage(0);
+    exitProcess = TRUE;
     break;
   case WM_KEYUP:
     sharedStruct->keyCode = -1;
@@ -248,9 +254,6 @@ void BGI_server(DWORD param)
   
   registerClass(WINDOW_CLASS_NAME, MainWindowProc);
   registerClass(INVISIBLE_WINDOW_CLASS_NAME, InvisibleWindowProc);
-  
-  if(options & MODE_DEBUG)
-    FreeConsole();
 
   if(options & MODE_SHOW_INVISIBLE_PAGE)
   {
@@ -273,12 +276,15 @@ void BGI_server(DWORD param)
 
   createSharedObjects();
   SetTimer(window.wnd, 0, 1000 / UPDATES_PER_SECOND, NULL);
-  CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)clientChecker, NULL, 0, NULL);
+  if((options & MODE_RELEASE) == 0)
+  {
+    exitProcess = TRUE;
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)clientChecker, NULL, 0, NULL);
+  }
   IPC_raiseEvent(sharedObjects.serverCreatedEvent);
   windowLoop();
   BGI_closeSharedObjects(&sharedObjects, sharedStruct);
-
-  if(options & MODE_DEBUG)
+  if(exitProcess) 
     ExitProcess(0);
 }
 

@@ -20,13 +20,13 @@
 #ifndef __BGI_GRAPHICS_H__
 #define __BGI_GRAPHICS_H__
 
+#include <Windows.h>
+
 #ifdef _MSC_VER
   #pragma comment(lib, "kernel32")
   #pragma comment(lib, "user32")
   #pragma comment(lib, "gdi32")
 #endif
-
-#include <Windows.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -308,7 +308,6 @@ extern int textheight(const char  *textstring);
 extern int textwidth(const char  *textstring);
 
 extern void delay(int miliSeconds);
-extern int kbhit();
 extern int readkey();
 extern int keypressed(int key);
 extern int anykeypressed();

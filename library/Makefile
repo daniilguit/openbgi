@@ -1,7 +1,7 @@
 CC = gcc
 AR = ar
-CFLAGS = -O 
-LDFLAGS = -s
+CFLAGS = -O2 
+#CFLAGS = /O2 /GL /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /EHsc /MD /W3 /nologo /c /Zi /TP  
 SRCS = bgi.c server.c client.c ipc.c graphics.c
 OBJS = bgi.o server.o client.o ipc.o graphics.o
 
