@@ -64,9 +64,14 @@ static void serverThread(DWORD p)
   BGI_server(p);
 }
 
-DWORD static packParams(int w, int h, int mode)
+LPVOID static packParams(int w, int h, int mode)
 {
-  return (w & 0xFFF) | ((h & 0xFFF) << 12) + ((mode & 0xFFF) << 24);
+  int r = (w & 0xFFF) | ((h & 0xFFF) << 12) + ((mode & 0xFFF) << 24);
+#if _MSC_VER >= 1400
+  return (LPVOID)(__int64)r;
+#else
+  return (LPVOID)r;
+#endif
 }
 
 void BGI_startServer(int width, int height, int mode)
@@ -93,7 +98,7 @@ void BGI_startServer(int width, int height, int mode)
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
     GetModuleFileName(GetModuleHandle(NULL), fileName, sizeof(fileName) / sizeof(char));
-    r = CreateProcess(fileName, NULL, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi);
+    r = CreateProcess(fileName, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
     CreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)&BGI_server, (LPVOID)packParams(width, height, mode), 0, 0);
   }
   
@@ -103,7 +108,10 @@ void BGI_startServer(int width, int height, int mode)
   window.dc = GetDC(window.wnd);
 
   openSharedObjects();
-  serverCheckerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serverPresenceChecker, NULL, 0, NULL);
+  if(mode & MODE_RELEASE)
+    serverCheckerThread = NULL;
+  else
+    serverCheckerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serverPresenceChecker, NULL, 0, NULL);
   
   for(pc = 0; pc != 2; pc++)
     BGI_createPage(pages + pc, window.dc,sharedObjects.pagesSection[pc], width, height);
@@ -211,7 +219,8 @@ int BGI_getch()
 
 void BGI_closeWindow()
 {
-  TerminateThread(serverCheckerThread, 0);
+  if(serverCheckerThread != NULL)
+    TerminateThread(serverCheckerThread, 0);
   SendMessage(window.wnd, WM_DESTROY, 0, 0);
   BGI_closeSharedObjects(&sharedObjects, sharedStruct);
 }

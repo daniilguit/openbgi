@@ -79,6 +79,7 @@ typedef struct
 
 
 extern RGBQUAD * BGI_palette;
+extern RGBQUAD BGI_default_palette[];
 extern const char * PAGES_SECTION_NAME[2];
 
 HINSTANCE BGI_getInstance();

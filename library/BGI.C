@@ -24,7 +24,7 @@
 static HINSTANCE hInstance;
 
 RGBQUAD * BGI_palette = NULL;
-RGBQUAD BGI_palette_ [16] = 
+RGBQUAD BGI_default_palette[16] = 
 {
   {0,0,0},
   {128,0,0},
@@ -50,7 +50,7 @@ void BGI_initPalette()
 {
    int i;
    for(i = 0; i != 16; i++)
-      BGI_palette[i] = BGI_palette_[i];
+      BGI_palette[i] = BGI_default_palette[i];
 }
 
 void BGI_createPage(PAGE * page, HDC dc, HANDLE secton, int width, int height)
