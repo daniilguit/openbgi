@@ -42,7 +42,6 @@ static HDC invisibleWindowDC;
 static PAGE pages[2];
 static SHARED_STRUCT * sharedStruct;
 static SHARED_OBJECTS sharedObjects;
-static int visualPage = 0;
 static int exitProcess = FALSE;
 
 static int systemKey(int key)
@@ -72,7 +71,7 @@ static void updateWindow()
   BitBlt(window.dc, 0, 0, window.width, window.height, pages[sharedStruct->visualPage].dc, 0, 0, SRCCOPY);
 }
 
-static LRESULT InvisibleWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static LRESULT WINAPI InvisibleWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch(msg)
   {
@@ -84,7 +83,7 @@ static LRESULT InvisibleWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
   return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-static LRESULT MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static LRESULT WINAPI MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   static int keyProcessed = 0;
   switch(msg)
@@ -172,7 +171,7 @@ static LRESULT MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-void registerClass(const char * className, void * wndProc)
+void registerClass(const char * className, WNDPROC wndProc)
 {
   WNDCLASSEX wcx;
   wcx.cbSize = sizeof(wcx);
@@ -209,7 +208,7 @@ void createSharedObjects(void)
 }
 
 
-void clientChecker(DWORD p)
+void clientChecker()
 {
   IPC_lockMutex(sharedObjects.clientPresentMutex);
   SendMessage(window.wnd, WM_CLOSE, 0, 0);
@@ -239,10 +238,11 @@ void initFullScreen()
 
 HWND createWindow(LPCSTR className, LPCSTR title, UINT style)
 {
-  RECT r = {0,0,window.width,window.height};
-  HWND result = CreateWindow(className, title, style | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, BGI_getInstance(), NULL);
+  RECT r;
+  HWND result;
+  SetRect(&r, 0, 0, window.width, window.height);
   AdjustWindowRect(&r, style, FALSE);
-  SetWindowPos(result, 0, 0, 0, r.right, r.bottom, SWP_NOMOVE | SWP_NOZORDER);
+  result = CreateWindow(className, title, style | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, r.right - r.left, r.bottom - r.top, NULL, NULL, BGI_getInstance(), NULL);
   return result;
 }
 
@@ -252,8 +252,8 @@ void BGI_server(DWORD param)
   window.width = param & 0xFFF;
   window.height = (param >> 12) & 0xFFF;
   
-  registerClass(WINDOW_CLASS_NAME, MainWindowProc);
-  registerClass(INVISIBLE_WINDOW_CLASS_NAME, InvisibleWindowProc);
+  registerClass(WINDOW_CLASS_NAME, &MainWindowProc);
+  registerClass(INVISIBLE_WINDOW_CLASS_NAME, &InvisibleWindowProc);
 
   if(options & MODE_SHOW_INVISIBLE_PAGE)
   {

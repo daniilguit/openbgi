@@ -48,12 +48,12 @@ void openSharedObjects(void)
   for(i = 0; i != 2; i++)
     sharedObjects.pagesSection[i] = IPC_openSection(PAGES_SECTION_NAME[i]);
 
-  sharedStruct = IPC_openSharedMemory(SHARED_STRUCT_NAME, sizeof(SHARED_STRUCT));
-  BGI_palette = IPC_openSharedMemory(PALETTE_SECTION_NAME, sizeof(RGBQUAD)*16);
+  sharedStruct = IPC_openSharedMemory(SHARED_STRUCT_NAME);
+  BGI_palette = IPC_openSharedMemory(PALETTE_SECTION_NAME);
   assert(sharedStruct != NULL);
 }
 
-static void serverPresenceChecker(DWORD w)
+static void serverPresenceChecker()
 {
   IPC_lockMutex(sharedObjects.serverPresentMutex);
   ExitProcess(0);
@@ -66,9 +66,9 @@ static void serverThread(DWORD p)
 
 LPVOID static packParams(int w, int h, int mode)
 {
-  int r = (w & 0xFFF) | ((h & 0xFFF) << 12) + ((mode & 0xFFF) << 24);
+  int r = ((w & 0xFFF) | ((h & 0xFFF) << 12)) + ((mode & 0xFFF) << 24);
 #if _MSC_VER >= 1400
-  return (LPVOID)(__int64)r;
+  return (LPVOID)(long)r;
 #else
   return (LPVOID)r;
 #endif
@@ -86,8 +86,7 @@ void BGI_startServer(int width, int height, int mode)
   sharedObjects.serverCreatedEvent = IPC_createEvent(SERVER_STARTED_EVENT_NAME);
   if(mode & MODE_RELEASE)
   {
-    HANDLE h = CreateThread(NULL,  0, (LPTHREAD_START_ROUTINE)serverThread, (LPVOID)packParams(width, height, mode), 0, 0);
-    printf("");
+    CreateThread(NULL,  0, (LPTHREAD_START_ROUTINE)serverThread, (LPVOID)packParams(width, height, mode), 0, 0);
   }
   else
   {

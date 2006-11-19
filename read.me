@@ -3,10 +3,16 @@ Using BGI library:
 There is listed some differences in programming if you use openbgi 
 
 1.
-Because this library is written to work simultaneously with console window, it has separate
-keyboard handling interface to not conflict with console keyboard io : 
+Because this library is written to work simultaneously with console window, 
+it has separate keyboard handling interface to not conflict with console
+keyboard handling functions ( getch() and kbhit()) : 
+   
+   conio.h    graphics.h
   getch() => readkey()
   kbhit() => anykeypressed()
+
+readkey() waits for key pressed when _graphics_ window is active, not console.
+Same works anykeypressed()
 
 
 

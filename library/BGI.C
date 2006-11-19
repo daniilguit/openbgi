@@ -21,8 +21,6 @@
 #include "IPC.h"
 #include <stdio.h>
 
-static HINSTANCE hInstance;
-
 RGBQUAD * BGI_palette = NULL;
 RGBQUAD BGI_default_palette[16] = 
 {

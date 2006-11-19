@@ -314,7 +314,6 @@ extern int anykeypressed();
 extern int getfps();
 extern void getmousestate(g_mousestate * state);
 extern void setmousepos(int x, int y);
-extern void setmousecursor(int * cur);
 
 #ifdef __cplusplus
 }

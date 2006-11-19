@@ -25,6 +25,7 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#include <assert.h>
 
 #ifndef M_PI
 #define M_PI       3.14159265358979323846
@@ -41,7 +42,7 @@ typedef void (*putpixelProc_t)(int x, int y, int color);
 
 static g_pointtype modeResolution[] = {{640,480},{640,200}, {640,350}, {640,480}, {640,480}, {800,600},{1024,768}};
 
-static lastMeasuredTime = 0;
+static int lastMeasuredTime = 0;
 static int frameCounter = 0;
 static int FPS = 0;
 static int XORMode = 0;
@@ -52,7 +53,6 @@ static int windowHeight;
 static int length;
 static PAGE * pages;
 static int activePageIndex = 0;
-static PAGE * activePage;
 static unsigned char * activeBits;
 static HDC activeDC;
 static SHARED_STRUCT * sharedStruct;
@@ -68,13 +68,10 @@ static struct
 static int graphMode = -1;
 
 static COLORREF builtinPalette[MAXCOLORS];
-static HPALETTE hPalette;
-static HBRUSH currentBrush;
 static HBRUSH backBrush;
 static g_pointtype currentPosition;
 static int backColor = BLACK;
 static int penColor = WHITE;
-static int brushColor = BLACK;
 
 static g_arccoordstype arcCoords;
 
@@ -87,8 +84,6 @@ static struct
 {
   double mx, my;
 } userSize = {1, 1};
-
-static int userPatternColor;
 
 static unsigned short patternsBits[USER_FILL + 1][8] = 
 {
@@ -109,7 +104,7 @@ static unsigned short patternsBits[USER_FILL + 1][8] =
 static void selectObject(HANDLE object)
 {
   HANDLE oldObject = SelectObject(pages[0].dc, object);
-  HANDLE r = SelectObject(pages[1].dc, object);
+  SelectObject(pages[1].dc, object);
   SelectObject(windowDC, object);
   DeleteObject(oldObject);
 }
@@ -142,6 +137,15 @@ static void endDraw()
 
 #define BEGIN_FILL {BEGIN_DRAW SetTextColor(activeDC, PALETTE_INDEX(fillSettings.color)); }
 #define END_FILL {END_DRAW SetTextColor(activeDC, PALETTE_INDEX(penColor)); }
+
+static void setRect(RECT * r, int x1, int y1, int x2, int y2)
+{
+  assert(r != NULL);
+  r->left = x1;
+  r->right = x2;
+  r->top = y1;
+  r->bottom = y2;
+}
 
 static void setWriteMode()
 {
@@ -176,7 +180,7 @@ static void updatePosition(int x, int y)
 
 static void retrivePosition()
 {
-  MoveToEx(activeDC, 0, 0, (LPPOINT)&currentPosition);
+  MoveToEx(activeDC, 0, 0, (POINT *)(void *)&currentPosition);
   MoveToEx(activeDC, currentPosition.x, currentPosition.y, NULL);
   
   currentPosition.x = TO_RELATIVE_X(currentPosition.x);
@@ -188,7 +192,7 @@ static int convertToBits(DWORD bits[32], int pattern)
   int i = 0, j;
   pattern &= 0xFFFF;
 
-  while (1) 
+  for(;;)
   { 
     for (j = 0; pattern & 1; j++) pattern >>= 1;
     bits[i++] = j;
@@ -427,13 +431,16 @@ void  bar3d(int left, int top, int right, int bottom, int depth, int topflag)
       TO_ABSOLUTE_X(right),
       TO_ABSOLUTE_Y(bottom)
       );
-    moveto(left, top);
-    lineto_(left + depth,top - hdep);
-    lineto_(right + depth, top - hdep);
-    lineto_(right + depth, bottom - hdep);
-    lineto_(right, bottom);
-    moveto(right + depth, top - hdep);
-    lineto_(right, top);
+    if(topflag) 
+    {
+      moveto(left, top);
+      lineto_(left + depth,top - hdep);
+      lineto_(right + depth, top - hdep);
+      lineto_(right + depth, bottom - hdep);
+      lineto_(right, bottom);
+      moveto(right + depth, top - hdep);
+      lineto_(right, top);
+    }
   END_FILL
 }
 
@@ -460,7 +467,8 @@ void  circle(int x, int y, int radius)
 
 void  cleardevice(void)
 {
-  RECT r = {0, 0, windowWidth, windowHeight};
+  RECT r;
+  setRect(&r, 0, 0, windowWidth, windowHeight);
   BEGIN_DRAW
     FillRect(activeDC, &r, backBrush);
   END_DRAW
@@ -468,7 +476,8 @@ void  cleardevice(void)
 
 void  clearviewport(void)
 {
-  RECT r = {viewPort.left, viewPort.top, viewPort.right, viewPort.bottom};
+  RECT r;
+  setRect(&r, viewPort.left, viewPort.top, viewPort.right, viewPort.bottom);
   BEGIN_DRAW
     FillRect(activeDC, &r, backBrush);
   END_DRAW
@@ -510,7 +519,7 @@ void  drawpoly(int numpoints, const int  *polypoints)
 void ellipse_(HDC dc, int x, int y, int stangle, int endangle, int xradius, int yradius)
 {
   Arc(
-    activeDC,
+    dc,
     TO_ABSOLUTE_X(x - xradius), 
     TO_ABSOLUTE_Y(y - yradius),
     TO_ABSOLUTE_X(x + xradius),
@@ -647,12 +656,12 @@ int getmaxmode(void)
 
 int getmaxx(void)
 {
-  return windowWidth;
+  return windowWidth - 1;
 }
 
 int getmaxy(void)
 {
-  return windowHeight;
+  return windowHeight - 1;
 }
 
 char *  getmodename( int mode_number )
@@ -677,6 +686,9 @@ char *  getmodename( int mode_number )
 
 void  getmoderange(int graphdriver, int  *lomode, int *himode)
 {
+  (void)graphdriver; // this prevent waring of unused graphdriver
+                     // it presents only for compatibility with Borland
+                     // implementation
   *lomode = VGALO;
   *himode = GM_1024x768;
 }
@@ -725,7 +737,7 @@ int gety(void)
 
 char *  grapherrormsg(int errorcode)
 {
-  if(graphMode == -1)
+  if(errorcode == grNoInitGraph)
     return "Graphics in not initialized";
   return "OK";
 }
@@ -839,7 +851,7 @@ void  pieslice(int x, int y, int stangle, int endangle, int radius)
 #define PUTPIXEL(X,Y,COLOR, OP)\
   int index = X + (windowHeight - Y - 1) * windowWidth;\
   int delta = X % 2 ? 0 : 4;\
-  activeBits[index / 2] OP (COLOR & 0xF) << delta
+  activeBits[index / 2] OP (BYTE)((COLOR & 0xF) << delta)
 
 
 static void putpixelCOPY(int x, int y, int color)
@@ -1028,9 +1040,9 @@ void  setrgbpalette(int colornum, int red, int green, int blue)
 {
   CHECK_GRAPHCS_INITED
   CHECK_COLOR_RANGE(colornum)
-  BGI_palette[colornum].rgbRed = red;
-  BGI_palette[colornum].rgbGreen = green;
-  BGI_palette[colornum].rgbBlue = blue;
+  BGI_palette[colornum].rgbRed = (BYTE)red;
+  BGI_palette[colornum].rgbGreen = (BYTE)green;
+  BGI_palette[colornum].rgbBlue = (BYTE)blue;
   SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
   SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
   SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
@@ -1059,7 +1071,7 @@ void  setusercharsize(int multx, int divx, int multy, int divy)
   if(divx != 0 && divy != 0) 
   {
     userSize.mx = multx / (double) divx;
-    userSize.my = multx / (double) divy;
+    userSize.my = multy / (double) divy;
   }
 }
 
@@ -1153,10 +1165,6 @@ void setmousepos(int x, int y)
   
   GetWindowRect(BGI_getWindow(), &r);
   SetCursorPos(r.left + x, r.top + y);
-}
-
-void setmousecursor(int * cur)
-{
 }
 
 int readkey()
