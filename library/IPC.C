@@ -59,7 +59,7 @@ void IPC_lockMutex(HANDLE mutex)
 
 void IPC_unlockMutex(HANDLE mutex)
 {
-  BOOL r = ReleaseMutex(mutex);
+  ReleaseMutex(mutex);
 }
 
 HANDLE IPC_createSection(const char * name, int size)
@@ -79,7 +79,7 @@ void * IPC_createSharedMemory(const char * name, int size)
   return MapViewOfFile(sec, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 }
 
-void * IPC_openSharedMemory(const char * name, int size)
+void * IPC_openSharedMemory(const char * name)
 {
   HANDLE sec = IPC_openSection(name);
   //assert(sec != 0);

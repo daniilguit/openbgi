@@ -34,7 +34,7 @@ void IPC_waitEvent(HANDLE event);
 HANDLE IPC_createSection(const char * name, int size);
 HANDLE IPC_openSection(const char * name);
 void * IPC_createSharedMemory(const char * name, int size);
-void * IPC_openSharedMemory(const char * name, int size);
+void * IPC_openSharedMemory(const char * name);
 void IPC_closeSharedMemory(void * addr);
 
 #endif

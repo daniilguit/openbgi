@@ -1,53 +1,38 @@
+/*
+  BGI library implementation for Microsoft(R) Windows(TM)
+  Copyright (C) 2006  Daniil Guitelson
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+
 #include <graphics.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <conio.h>
+#include <stdlib.h>
 
-int CALLBACK WinMain(HINSTANCE hI, HINSTANCE hPrev, LPSTR lpCmd, int nCmdShow) {
-}
-
-int main(void)
+void main(void)
 {
-  /* select a driver and mode that supports the use */
-  /* of the setrgbpalette function.                 */
-  int gdriver = VGA, gmode = VGAHI, errorcode;
-  struct palettetype pal;
-  int i, ht, y, xmax;
-
-  /* initialize graphics and local variables */
-  initgraph(&gdriver, &gmode, "DISABLE_DEBUG");
-
-  /* read result of initialization */
-  errorcode = graphresult();
-  if (errorcode != grOk)  /* an error occurred */
-  {
-    printf("Graphics error: %s\n", grapherrormsg(errorcode));
-    printf("Press any key to halt:");
-    getch();
-    exit(1); /* terminate with an error code */
+  int gd = DETECT, gm = 0;
+  initgraph(&gd, &gm, "");
+  printf("Hello, world\n");
+  while(!anykeypressed()) {
+    setpalette(3, rand() % 16);
+    setbkcolor(rand() % (MAXCOLORS + 1));
+    setcolor(3);
+    bar(rand() % 640,rand() % 480,rand() % 640,rand() % 480);
+    delay(10);
   }
-
-  /* grab a copy of the palette */
-  getpalette(&pal);
-
-  /* create gray scale */
-  for (i=0; i<pal.size; i++)
-    setrgbpalette(pal.colors[i], i*4, i*4, i*4);
-
-  /* display the gray scale */
-  ht = getmaxy() / 16;
-  xmax = getmaxx();
-  y = 0;
-  for (i=0; i<pal.size; i++)
-  {
-    setfillstyle(SOLID_FILL, i);
-    bar(0, y, xmax, y+ht);
-    y += ht;
-  }
-
-  /* clean up */
-  getch();
   closegraph();
-  return 0;
 }
-
