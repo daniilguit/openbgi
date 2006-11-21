@@ -98,8 +98,8 @@ static LRESULT WINAPI MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     }
     break;
   case WM_MYPALETTECHANGED:
-    SetDIBColorTable(pages[0].dc, wParam, lParam, BGI_palette + wParam);
-    SetDIBColorTable(pages[1].dc, wParam, lParam, BGI_palette + wParam);
+    SetDIBColorTable(pages[0].dc, (UINT)wParam, (UINT)lParam, BGI_palette + wParam);
+    SetDIBColorTable(pages[1].dc, (UINT)wParam, (UINT)lParam, BGI_palette + wParam);
     updateWindow();
     break;
   case WM_LBUTTONDOWN:

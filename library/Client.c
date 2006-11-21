@@ -67,10 +67,10 @@ static void serverThread(DWORD p)
 LPVOID static packParams(int w, int h, int mode)
 {
   int r = ((w & 0xFFF) | ((h & 0xFFF) << 12)) + ((mode & 0xFFF) << 24);
-#if _MSC_VER >= 1400
-  return (LPVOID)(long)r;
+#ifdef _Wp64  
+  return (LPVOID)(__int64)r;
 #else
-  return (LPVOID)r;
+  return (LPVOID)(long)r;
 #endif
 }
 

@@ -18,20 +18,35 @@
 */
 
 #include <graphics.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-void main(void)
+int main(void)
 {
-  int gd = DETECT, gm = 0;
+  int gd = DETECT, gm;
+  g_palettetype pal;
+  int i, ht, y, xmax;
+
   initgraph(&gd, &gm, "");
-  printf("Hello, world\n");
-  while(!anykeypressed()) {
-    setpalette(3, rand() % 16);
-    setbkcolor(rand() % (MAXCOLORS + 1));
-    setcolor(3);
-    bar(rand() % 640,rand() % 480,rand() % 640,rand() % 480);
-    delay(10);
+
+  getpalette(&pal);
+
+  for (i=0; i<pal.size; i++)
+    setrgbpalette(pal.colors[i], i*16, i*16, i*16);
+
+  ht = (getmaxy() + 1)/ 16;
+  xmax = getmaxx();
+  y = 0;
+  for (i=0; i<pal.size; i++)
+  {
+    setcolor(i);
+    setfillstyle(SOLID_FILL, i);
+    bar(0, y, xmax, y+ht);
+    y += ht;
   }
+  line(0,0, getmaxx(), getmaxy());
+  readkey();
   closegraph();
+  return 0;
 }
+

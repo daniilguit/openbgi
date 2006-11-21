@@ -1043,6 +1043,7 @@ void  setrgbpalette(int colornum, int red, int green, int blue)
   BGI_palette[colornum].rgbRed = (BYTE)red;
   BGI_palette[colornum].rgbGreen = (BYTE)green;
   BGI_palette[colornum].rgbBlue = (BYTE)blue;
+  builtinPalette[colornum] = RGB(red, green, blue);
   SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
   SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
   SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
