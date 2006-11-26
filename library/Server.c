@@ -83,6 +83,7 @@ static LRESULT WINAPI InvisibleWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LP
   return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
+
 static LRESULT WINAPI MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   static int keyProcessed = 0;
@@ -171,6 +172,7 @@ static LRESULT WINAPI MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
   return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
+
 void registerClass(const char * className, WNDPROC wndProc)
 {
   WNDCLASSEX wcx;
@@ -189,7 +191,8 @@ void registerClass(const char * className, WNDPROC wndProc)
   RegisterClassEx(&wcx);
 }
 
-void createSharedObjects(void)
+/* Creates all server-side shared objects (mutexes, pages, events etc) */
+void createSharedObjects(int rgb)
 {
   int i;
   sharedObjects.serverCreatedEvent = IPC_openEvent(SERVER_STARTED_EVENT_NAME);
@@ -202,12 +205,12 @@ void createSharedObjects(void)
   sharedStruct->keyCode = -1;
   for(i = 0; i != 2; i++)
   {
-    sharedObjects.pagesSection[i] = IPC_createSection(PAGES_SECTION_NAME[i], window.width * window.height);
-    BGI_createPage(pages+ i, window.dc, sharedObjects.pagesSection[i], window.width, window.height);
+    sharedObjects.pagesSection[i] = IPC_createSection(PAGES_SECTION_NAME[i], window.width * window.height * 4);
+    BGI_createPage(pages+ i, window.dc, sharedObjects.pagesSection[i], window.width, window.height, rgb);
   }
 }
 
-
+/* Procedure of thread that checks for client presence */
 void clientChecker()
 {
   IPC_lockMutex(sharedObjects.clientPresentMutex);
@@ -236,13 +239,13 @@ void initFullScreen()
   res = ChangeDisplaySettings(&dm, CDS_FULLSCREEN);
 }
 
-HWND createWindow(LPCSTR className, LPCSTR title, UINT style)
+HWND createWindow(LPCSTR className, LPCSTR title)
 {
   RECT r;
   HWND result;
   SetRect(&r, 0, 0, window.width, window.height);
-  AdjustWindowRect(&r, style, FALSE);
-  result = CreateWindow(className, title, style | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, r.right - r.left, r.bottom - r.top, NULL, NULL, BGI_getInstance(), NULL);
+  AdjustWindowRect(&r, WS_CAPTION | WS_SYSMENU, FALSE);
+  result = CreateWindow(className, title, WS_CAPTION | WS_SYSMENU | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, r.right - r.left, r.bottom - r.top, NULL, NULL, BGI_getInstance(), NULL);
   return result;
 }
 
@@ -257,7 +260,7 @@ void BGI_server(DWORD param)
 
   if(options & MODE_SHOW_INVISIBLE_PAGE)
   {
-    invisibleWindow = createWindow(INVISIBLE_WINDOW_CLASS_NAME, "Invisible page", WS_OVERLAPPEDWINDOW);
+    invisibleWindow = createWindow(INVISIBLE_WINDOW_CLASS_NAME, "Invisible page");
     SetTimer(invisibleWindow, 0, 1000 / DEBUG_UPDATES_PER_SECOND, NULL);
     invisibleWindowDC = GetDC(invisibleWindow);
   }
@@ -269,12 +272,12 @@ void BGI_server(DWORD param)
   }
   else 
   {
-    window.wnd = createWindow(WINDOW_CLASS_NAME, "Graphics", WS_OVERLAPPEDWINDOW);
+    window.wnd = createWindow(WINDOW_CLASS_NAME, "Graphics");
   }
   
   window.dc = GetDC(window.wnd);
 
-  createSharedObjects();
+  createSharedObjects(options & MODE_RGB);
   SetTimer(window.wnd, 0, 1000 / UPDATES_PER_SECOND, NULL);
   if((options & MODE_RELEASE) == 0)
   {

@@ -2,7 +2,7 @@ Using BGI library:
 
 There is listed some differences in programming if you use openbgi 
 
-1.
+1. getch vs readkey
 Because this library is written to work simultaneously with console window, 
 it has separate keyboard handling interface to not conflict with console
 keyboard handling functions ( getch() and kbhit()) : 
@@ -15,5 +15,33 @@ readkey() waits for key pressed when _graphics_ window is active, not console.
 Same works anykeypressed()
 
 
+2. initgraph(int * gd, int * gm, const char * path) params
+ 
+Works as in old dos BGI but with some useful extensions:
+
+  '*gd' can be DETECT or VGA (they are equivalent) 
+  
+  '*gm' can be VGAHI, VGALO, VGAMED , they has width and height
+            same as it had in dos BGI. Also there are extension modes:
+            GM_800x600, GM_1024x768 (it has meaningful names)
+  'path' can be empty string, since no old BGI driver are used,
+              but it can contains some extension substrings
+              (that are tested by strstr so you can use any delimiter
+              not use delimiters at all)
+
+              "RGB" - use rgb mode instead of 16 colors (so you use RGB(,,) macros
+                      to generate appropreate color for setcolor, etc. 
+                      Std colors constants are useless in this mode.
+
+              "SHOW_INVISIBLE_PAGE" - two graphics window will be 
+                                      present on the screen : normal and
+                                      another, that always show 'invisible' page
+
+              "FULL_SCREEN" - set full screen (for example for games).
+
+          example : initgraph(&gd, &gm, "RGBFULL_SCREEN") - initialize full 
+          screen with rgb color model
+ 
+ 
 
 

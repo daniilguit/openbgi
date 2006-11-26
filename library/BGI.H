@@ -22,8 +22,8 @@
 
 #include <windows.h>
 
-#define MODE_RGB 0
-#define MODE_16  1
+#define MODE_16  0
+#define MODE_RGB 1
 #define MODE_FULLSCREEN 2
 #define MODE_RELEASE 4
 #define MODE_DEBUG 0
@@ -50,6 +50,10 @@
 #define UPDATES_PER_SECOND 2
 #define DEBUG_UPDATES_PER_SECOND 5
 
+
+/**
+ * Represents off-screen DIB image
+ */
 typedef struct 
 {
   HDC dc;
@@ -57,6 +61,9 @@ typedef struct
   int * bits;
 } PAGE;
 
+/**
+ * Stores handles for all IPC objects
+ */
 typedef struct
 {
   HANDLE keyboardEvent;
@@ -68,6 +75,9 @@ typedef struct
   HANDLE paletteSection;
 } SHARED_OBJECTS;
 
+/**
+ * Structure that is shared between two processes
+ */
 typedef struct
 {
   int mouseX, mouseY;
@@ -77,29 +87,49 @@ typedef struct
   int visualPage;
 } SHARED_STRUCT;
 
-
-extern RGBQUAD * BGI_palette;
+/* Palette that is shared between processes */
+extern RGBQUAD * BGI_palette; 
+/* Default palette values */
 extern RGBQUAD BGI_default_palette[];
+/* Names for shared-objects that share DIB-sections */
 extern const char * PAGES_SECTION_NAME[2];
 
+/* malloc replacements. needed for `server` process */
+void * BGI_malloc(int size);
+/* free replacements. needed for `server` process */
+void BGI_free(void * ptr);
+
+/* Returns HINSTANCE of current process */
 HINSTANCE BGI_getInstance();
+/* Main server procedure */
 void BGI_server(DWORD param);
+/* Runs `server` process */
 void BGI_startServer(int width, int height, int mode);
-void BGI_createPage(PAGE * page, HDC dc,HANDLE section, int width, int height);
+/* Creates page (DIB-section) */
+void BGI_createPage(PAGE * page, HDC dc,HANDLE section, int width, int height, int rgb);
+/* initialize palette with default values */
 void BGI_initPalette();
+/* returns array of 2 shared pages */
 PAGE * BGI_getPages(void);
+/* If any key is pressed */
 int BGI_anyKeyPressed(void);
-int BGI_getKeyPressed(void);
+/* Block current thread until user pressed some key and returns it */
 int BGI_waitForKeyPressed();
+/* Returns HDC of server-window */
 HDC BGI_getWindowDC();
+/* Returns HWND of server-window */
 HWND BGI_getWindow();
+/* Blocks current thread until user pressed some key and returns it */
 int BGI_getch();
+/* Returns structure that contains shared date */
 SHARED_STRUCT * BGI_getSharedStruct();
-
+/* Asks server window to redraw it`s content */
 void BGI_updateWindow(void);
+/* Changes server active window */
 void BGI_setVisualPage(int page);
+/* Stop server */
 void BGI_closeWindow(void);
-
+/* Destroy all shared objects */
 void BGI_closeSharedObjects(SHARED_OBJECTS * objs, SHARED_STRUCT * strct);
 
 #endif

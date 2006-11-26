@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* Contains some attributes of server window */
 static struct
 {
   HWND wnd;
@@ -39,6 +40,7 @@ static SHARED_OBJECTS sharedObjects;
 static PAGE pages[2];
 static HANDLE serverCheckerThread;
 
+/* Opens all server-side shared objects */
 void openSharedObjects(void)
 {
   int i;
@@ -53,12 +55,14 @@ void openSharedObjects(void)
   assert(sharedStruct != NULL);
 }
 
+/* Procedure of thread that checks for server presence */
 static void serverPresenceChecker()
 {
   IPC_lockMutex(sharedObjects.serverPresentMutex);
   ExitProcess(0);
 }
 
+/* Server-thread. Is used if we use MODE_RELEAS */
 static void serverThread(DWORD p)
 {
   BGI_server(p);
@@ -113,7 +117,7 @@ void BGI_startServer(int width, int height, int mode)
     serverCheckerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serverPresenceChecker, NULL, 0, NULL);
   
   for(pc = 0; pc != 2; pc++)
-    BGI_createPage(pages + pc, window.dc,sharedObjects.pagesSection[pc], width, height);
+    BGI_createPage(pages + pc, window.dc,sharedObjects.pagesSection[pc], width, height, mode & MODE_RGB);
 }
 
 PAGE * BGI_getPages(void)

@@ -27,10 +27,8 @@ void main(void)
   initgraph(&gd, &gm, "");
   printf("Hello, world\n");
   while(!anykeypressed()) {
-    setpalette(3, rand() % 16);
-    setbkcolor(rand() % (MAXCOLORS + 1));
-    setcolor(3);
-    bar(rand() % 640,rand() % 480,rand() % 640,rand() % 480);
+    setfillstyle(0, rand() % (MAXCOLORS + 1));
+    bar(rand() % getmaxx(),rand() % getmaxy(),rand() % getmaxx(),rand() % getmaxy());
     delay(10);
   }
   closegraph();

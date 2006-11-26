@@ -36,7 +36,14 @@
 #define TO_RELATIVE_X(X) ((int)((X - viewPort.left) / aspectRatio.x))
 #define TO_RELATIVE_Y(Y) ((int)((Y - viewPort.right) / aspectRatio.y))
 
-#define PALETTE_INDEX(i) builtinPalette[palette.colors[i % MAXCOLORS]]
+enum WhatChanged
+{
+  CHANGED_STYLE = 1,
+  CHANGED_WIDTH = 2,
+  CHANGED_COLOR = 4,
+  CHANGED_ALL = 0xF
+};
+
 #define DEG_TO_RAD(X)  ((X) * M_PI / 180.0)
 typedef void (*putpixelProc_t)(int x, int y, int color);
 
@@ -58,6 +65,7 @@ static HDC activeDC;
 static SHARED_STRUCT * sharedStruct;
 
 static HBRUSH stdBrushes[USER_FILL + 1];
+static HPEN stdPens[USERBIT_LINE];
 
 static struct 
 {
@@ -66,6 +74,7 @@ static struct
 } aspectRatio = {1, 1};
 
 static int graphMode = -1;
+static int rgbMode = 0;
 
 static COLORREF builtinPalette[MAXCOLORS];
 static HBRUSH backBrush;
@@ -101,12 +110,20 @@ static unsigned short patternsBits[USER_FILL + 1][8] =
   {221, 119, 221, 119, 221, 119, 221, 119},
 };
 
-static void selectObject(HANDLE object)
+static COLORREF translateColor(int color)
+{
+  if(rgbMode)
+    return (COLORREF)color;
+  return builtinPalette[palette.colors[color % MAXCOLORS]];
+}
+
+static void selectObject(HANDLE object, int del)
 {
   HANDLE oldObject = SelectObject(pages[0].dc, object);
   SelectObject(pages[1].dc, object);
   SelectObject(windowDC, object);
-  DeleteObject(oldObject);
+  if(del)
+    DeleteObject(oldObject);
 }
 
 static void initBrushes()
@@ -128,15 +145,15 @@ static void endDraw()
   }
 }
 
-#define CHECK_COLOR_RANGE(COLOR) if(COLOR < 0 || COLOR >= MAXCOLORS) return;
+#define CHECK_COLOR_RANGE(COLOR) if(!rgbMode && (COLOR < 0 || COLOR >= MAXCOLORS)) return;
 #define CHECK_GRAPHCS_INITED if(graphMode == -1) return;
 #define ICHECK_GRAPHCS_INITED if(graphMode == -1) return -1;
 
 #define BEGIN_DRAW  CHECK_GRAPHCS_INITED
 #define END_DRAW   endDraw();
 
-#define BEGIN_FILL {BEGIN_DRAW SetTextColor(activeDC, PALETTE_INDEX(fillSettings.color)); }
-#define END_FILL {END_DRAW SetTextColor(activeDC, PALETTE_INDEX(penColor)); }
+#define BEGIN_FILL { BEGIN_DRAW  }
+#define END_FILL { END_DRAW  }
 
 static void setRect(RECT * r, int x1, int y1, int x2, int y2)
 {
@@ -155,7 +172,7 @@ static void setWriteMode()
   {
     SetROP2(pages[0].dc, op);
     SetROP2(pages[1].dc, op);
-    SetROP2(activeDC, op);
+    SetROP2(windowDC, op);
   }
 }
 
@@ -163,7 +180,7 @@ static void unsetWriteMode()
 {
   SetROP2(pages[0].dc, R2_COPYPEN);
   SetROP2(pages[1].dc, R2_COPYPEN);
-  SetROP2(activeDC, R2_COPYPEN);
+  SetROP2(windowDC, R2_COPYPEN);
 }
 
 static void updatePosition(int x, int y)
@@ -207,51 +224,70 @@ static int convertToBits(DWORD bits[32], int pattern)
   }
 }
 
-static void updatePen()
+static void updatePen(int whatChanged)
 {
-  HPEN pen;
-  DWORD bits[32] = {0};
+  COLORREF c = translateColor(penColor);
   LOGBRUSH br;
-  int c;
-  SetTextColor(pages[0].dc, PALETTE_INDEX(penColor));
-  SetTextColor(pages[1].dc, PALETTE_INDEX(penColor));
-  switch(lineSettings.linestyle)
+  DWORD bits[32] = {0};
+
+  if(whatChanged & CHANGED_STYLE || whatChanged & CHANGED_WIDTH)
   {
-  case SOLID_LINE:
-    pen = CreatePen(PS_SOLID, lineSettings.thickness, PALETTE_INDEX(penColor));
-    break;
-  case DOTTED_LINE:
-    pen = CreatePen(PS_DOT,  lineSettings.thickness, PALETTE_INDEX(penColor));
-    break;
-  case CENTER_LINE:
-    pen = CreatePen(PS_DASH,  lineSettings.thickness, PALETTE_INDEX(penColor));
-    break;
-  case DASHED_LINE:
-    pen = CreatePen(PS_DASH,  lineSettings.thickness, PALETTE_INDEX(penColor));
-    break;
-  case USERBIT_LINE:
-    br.lbColor = PALETTE_INDEX(penColor);
-    br.lbStyle = BS_SOLID;
-    c = convertToBits(bits, lineSettings.upattern);
-    pen = ExtCreatePen(
-            PS_USERSTYLE | PS_GEOMETRIC,
-            lineSettings.thickness,
-            &br, 
-            c,
-            bits
-            );
-    break;
-  default:
-    pen = CreatePen(PS_SOLID, lineSettings.thickness, PALETTE_INDEX(penColor));
-    break;
+    HPEN pen;
+    switch(lineSettings.linestyle)
+    {
+    case SOLID_LINE:
+      pen = CreatePen(PS_SOLID, lineSettings.thickness, c);
+      break;
+    case DOTTED_LINE:
+      pen = CreatePen(PS_DOT, lineSettings.thickness, c);
+      break;
+    case CENTER_LINE:
+    case DASHED_LINE:
+      pen = CreatePen(PS_DASH, lineSettings.thickness, c);
+      break;
+    case USER_FILL:
+      br.lbColor = c;
+      br.lbStyle = BS_SOLID;
+      c = convertToBits(bits, lineSettings.upattern);
+      pen = ExtCreatePen(
+              PS_USERSTYLE | PS_GEOMETRIC,
+              lineSettings.thickness,
+              &br,
+              c,
+              bits
+              );      
+    }
+    selectObject(pen, 1);
+  } else  {
+    SetDCPenColor(pages[0].dc, c);
+    SetDCPenColor(pages[1].dc, c);
+    SetDCPenColor(windowDC, c);
   }
-  selectObject(pen);
+
+  if(whatChanged & CHANGED_COLOR)
+  {
+    SetTextColor(pages[0].dc, c);
+    SetTextColor(pages[1].dc, c);
+    SetTextColor(windowDC, c);
+  }
 }
 
-static void updateBrush()
+static void updateBrush(int whatChanged)
 {
-  SelectObject(pages[0].dc, stdBrushes[fillSettings.pattern]);
-  SelectObject(pages[1].dc, stdBrushes[fillSettings.pattern]);
+  COLORREF c = translateColor(fillSettings.color);
+  if(whatChanged & CHANGED_STYLE)
+  {
+    selectObject(stdBrushes[fillSettings.pattern], 0);
+  }
+  if(whatChanged & CHANGED_COLOR)
+  {
+    SetDCBrushColor(pages[0].dc, c);
+    SetDCBrushColor(pages[1].dc, c);
+    SetDCBrushColor(windowDC, c);
+    SetBkColor(pages[0].dc, c);
+    SetBkColor(pages[1].dc, c);
+    SetBkColor(windowDC, c);
+  }
 }
 
 static void updateFont()
@@ -268,7 +304,7 @@ static void updateFont()
     lf.lfEscapement = 900;
   lf.lfWeight = (int)((textSetting.charsize + 8) * userSize.mx);
   lf.lfHeight = (int)((textSetting.charsize + 10) * userSize.my);
-  selectObject(CreateFontIndirect(&lf));
+  selectObject(CreateFontIndirect(&lf), 1);
   
   if(textSetting.direction == HORIZ_DIR && textSetting.horiz == LEFT_TEXT)
     opt = TA_UPDATECP;
@@ -305,7 +341,8 @@ static void updateViewport()
         viewPort.top, 
         viewPort.right,
         viewPort.bottom
-        )
+        ),
+        1
       );
   }
 }
@@ -320,6 +357,24 @@ static void initPallette()
   palette.size = MAXCOLORS;
 }
 
+/** 
+ * Initialize graphics mode 
+ *
+ * @param gd must contains DETECT or VGA (they are equivalent) 
+ * @param gm can be VGAHI, VGALO, VGAMED , they has width and height
+             same as it had in dos BGI. Also there are extension modes:
+             GM_800x600, GM_1024x768 (it has meaningful names)
+ * @param path can be empty, since no old BGI driver are used 
+ *             but, it can contains some extension substrings
+ *             (that are tested by strstr so you can use any delimiter
+ *              not use delimiters at all)
+ *             "RGB" - use rgb mode instead of 16 colors
+ *             "SHOW_INVISIBLE_PAGE" - two graphics window will be 
+ *                                     present on the screen : normal and
+ *                                     another, that always show 'invisible' page
+ *             "FULL_SCREEN" - set full screen (for example for games).
+ *
+ */
 void initgraph(int * gd, int * gm, const char * path)
 {
   int options = 0;
@@ -342,14 +397,20 @@ void initgraph(int * gd, int * gm, const char * path)
   else 
     options |= MODE_DEBUG;
   if(strstr(path, "RGB") != NULL)
+  {
     options |= MODE_RGB;
+    rgbMode = 1;
+  }
   if(strstr(path, "FULL_SCREEN") != NULL)
     options |= MODE_FULLSCREEN;
   windowWidth = modeResolution[graphMode].x;
   windowHeight = modeResolution[graphMode].y;
 
   length = windowWidth * windowHeight / 2;
-  penColor = getmaxcolor();
+  if(options & MODE_RGB) 
+    penColor = RGB(0,0,0);
+  else
+    penColor = getmaxcolor();
   
   BGI_startServer(windowWidth, windowHeight, options);
   
@@ -366,10 +427,11 @@ void initgraph(int * gd, int * gm, const char * path)
   setactivepage(0);
   setvisualpage(0);
   initBrushes();
-
   setbkcolor(backColor);
-  updateBrush();
-  updatePen();
+
+  cleardevice();
+  updateBrush(CHANGED_ALL);
+  updatePen(CHANGED_ALL);
   updateFont();
   updatePosition(0,0);
 }
@@ -377,7 +439,7 @@ void initgraph(int * gd, int * gm, const char * path)
 static void lineto_(int x, int y)
 {
   LineTo(activeDC, x, y);
-  SetPixelV(activeDC, x, y, PALETTE_INDEX(penColor));
+  SetPixelV(activeDC, x, y, translateColor(penColor));
 }
 
 void arc(int x, int y, int stangle, int endangle, int radius)
@@ -469,9 +531,9 @@ void  cleardevice(void)
 {
   RECT r;
   setRect(&r, 0, 0, windowWidth, windowHeight);
-  BEGIN_DRAW
+  BEGIN_FILL
     FillRect(activeDC, &r, backBrush);
-  END_DRAW
+  END_FILL
 }
 
 void  clearviewport(void)
@@ -574,7 +636,7 @@ void  fillpoly(int numpoints, const int  *polypoints)
 void  floodfill(int x, int y, int border)
 {
   BEGIN_FILL
-     ExtFloodFill(activeDC, x, y, PALETTE_INDEX(border), FLOODFILLBORDER);
+     ExtFloodFill(activeDC, x, y, translateColor(border), FLOODFILLBORDER);
   END_FILL
 }
 
@@ -760,11 +822,11 @@ void line_(HDC dc, int x1, int y1, int x2, int y2)
 {
   MoveToEx(dc, TO_ABSOLUTE_X(x1), TO_ABSOLUTE_Y(y1), NULL);
   lineto__(dc, x2, y2);
-  SetPixelV(dc, TO_ABSOLUTE_X(x2), TO_ABSOLUTE_Y(y2), PALETTE_INDEX(penColor));
+  SetPixelV(dc, TO_ABSOLUTE_X(x2), TO_ABSOLUTE_Y(y2), translateColor(penColor));
 }
 
 #define BEGIN_LINEDRAW setWriteMode();
-#define END_LINEDRAW unsetWriteMode(); END_DRAW
+#define END_LINEDRAW unsetWriteMode(); 
 
 void  line(int x1, int y1, int x2, int y2)
 {
@@ -909,7 +971,7 @@ void  putpixel(int x, int y, int color)
   if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
     putpixelCOPY(TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), color);
   if(activePageIndex == sharedStruct->visualPage)
-    SetPixelV(windowDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), PALETTE_INDEX(color));
+    SetPixelV(windowDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
 }
 
 void  rectangle(int left, int top, int right, int bottom)
@@ -980,9 +1042,7 @@ void  setbkcolor(int color)
   CHECK_COLOR_RANGE(color)
   backColor = color;
   DeleteObject(backBrush);
-  backBrush = CreateSolidBrush(color);
-  SetBkColor(pages[0].dc, PALETTE_INDEX(color));
-  SetBkColor(pages[1].dc, PALETTE_INDEX(color));
+  backBrush = CreateSolidBrush(translateColor(color));
 }
 
 void  setcolor(int color)
@@ -990,63 +1050,99 @@ void  setcolor(int color)
   CHECK_GRAPHCS_INITED
   CHECK_COLOR_RANGE(color)
   penColor = color;
-  updatePen();
+  updatePen(CHANGED_COLOR);
 }
 
 void  setfillpattern(const char  *upattern, int color)
 {
   int i;
+  HANDLE old;
   CHECK_GRAPHCS_INITED
   CHECK_COLOR_RANGE(color)
   for(i = 0; i != 8; i++)
     patternsBits[USER_FILL][i] = upattern[i];
-  DeleteObject(stdBrushes[USER_FILL]);
-  fillSettings.pattern = USER_FILL;
-  fillSettings.color = color;
+  old = stdBrushes[USER_FILL];
   stdBrushes[USER_FILL] = CreatePatternBrush(CreateBitmap(8,8,1,1,(LPBYTE)patternsBits[USER_FILL]));
-  updateBrush();
+  fillSettings.color = color;
+  fillSettings.pattern = USER_FILL;
+  updateBrush(CHANGED_ALL);
+  DeleteObject(old);
 }
 
 void  setfillstyle(int pattern, int color)
 {
   CHECK_GRAPHCS_INITED
   CHECK_COLOR_RANGE(color)
-  fillSettings.pattern = pattern;
-  fillSettings.color = color;
-  updateBrush();
+  if(fillSettings.pattern == pattern) 
+  {
+    if(fillSettings.color != color)    
+    {
+      fillSettings.color = color;
+      updateBrush(CHANGED_COLOR);
+    }
+  }
+  else
+  {
+    fillSettings.pattern = pattern;
+    updateBrush(CHANGED_ALL);
+  }
 }
 
 void  setlinestyle(int linestyle, unsigned upattern, int thickness)
 {
   CHECK_GRAPHCS_INITED
-  if(linestyle >= 0 && linestyle < USERBIT_LINE)
+  if(linestyle >= 0 && linestyle <= USERBIT_LINE)
     lineSettings.linestyle = linestyle;
+  if(linestyle == USERBIT_LINE)
+  {
+    HPEN pen;
+    LOGBRUSH br;
+    int c;
+    static DWORD bits[32];
+    br.lbColor = translateColor(penColor);
+    br.lbStyle = BS_SOLID;
+    c = convertToBits(bits, lineSettings.upattern);
+    pen = ExtCreatePen(
+      PS_USERSTYLE | PS_GEOMETRIC,
+      lineSettings.thickness,
+      &br, 
+      0,
+      bits
+      );
+    DeleteObject(stdPens[USERBIT_LINE]);
+  }
   lineSettings.upattern = upattern;
   lineSettings.thickness = thickness;
-  updatePen();
+  updatePen(CHANGED_ALL);
 }
 
 void  setpalette(int colornum, int color)
 {
   CHECK_GRAPHCS_INITED
-  CHECK_COLOR_RANGE(colornum)
-  BGI_palette[colornum] = BGI_default_palette[color];
-  SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
-  SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
-  SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
+  if(!rgbMode)
+  {
+    CHECK_COLOR_RANGE(colornum)
+    BGI_palette[colornum] = BGI_default_palette[color];
+    SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
+    SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
+    SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
+  }
 }
 
 void  setrgbpalette(int colornum, int red, int green, int blue)
 {
   CHECK_GRAPHCS_INITED
-  CHECK_COLOR_RANGE(colornum)
-  BGI_palette[colornum].rgbRed = (BYTE)red;
-  BGI_palette[colornum].rgbGreen = (BYTE)green;
-  BGI_palette[colornum].rgbBlue = (BYTE)blue;
-  builtinPalette[colornum] = RGB(red, green, blue);
-  SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
-  SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
-  SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
+  if(!rgbMode)
+  {
+    CHECK_COLOR_RANGE(colornum)
+    BGI_palette[colornum].rgbRed = (BYTE)red;
+    BGI_palette[colornum].rgbGreen = (BYTE)green;
+    BGI_palette[colornum].rgbBlue = (BYTE)blue;
+    builtinPalette[colornum] = RGB(red, green, blue);
+    SetDIBColorTable(pages[0].dc, colornum, 1, BGI_palette + colornum);
+    SetDIBColorTable(pages[1].dc, colornum, 1, BGI_palette + colornum);
+    SendMessage(BGI_getWindow(), WM_MYPALETTECHANGED, colornum, 1);
+  }
 }
 
 void  settextjustify(int horiz, int vert)
@@ -1130,12 +1226,6 @@ void delay(int miliSeconds)
   Sleep(miliSeconds);
 }
 
-int kbhit()
-{
-  ICHECK_GRAPHCS_INITED
-  return sharedStruct->keyCode != -1;
-}
-
 int anykeypressed()
 {
   return sharedStruct->keyCode != -1;
@@ -1144,11 +1234,6 @@ int anykeypressed()
 int keypressed(int key)
 {
   return GetAsyncKeyState(key);
-}
-
-int getkeypressed()
-{
-  return sharedStruct->keyCode != -1;
 }
 
 void getmousestate(g_mousestate * state)
