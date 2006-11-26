@@ -37,7 +37,7 @@ void main()
         if(p == 0)
         {
           p = 1;
-          setcolor(rand() % getmaxcolor());
+          setcolor((rand() % MAXCOLORS) + 1);
           setlinestyle(rand() % USERBIT_LINE, 0, rand() % 4);
           ex = sx = state.x;
           ey = sy = state.y;
