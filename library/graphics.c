@@ -47,7 +47,7 @@ enum WhatChanged
 #define DEG_TO_RAD(X)  ((X) * M_PI / 180.0)
 typedef void (*putpixelProc_t)(int x, int y, int color);
 
-static g_pointtype modeResolution[] = {{640,480},{640,200}, {640,350}, {640,480}, {640,480}, {800,600},{1024,768}};
+static g_pointtype modeResolution[] = {{640,200}, {640,350}, {640,480}, {640,480}, {800,600},{1024,768}};
 
 static int lastMeasuredTime = 0;
 static int frameCounter = 0;
@@ -381,11 +381,11 @@ void initgraph(int * gd, int * gm, const char * path)
   if(graphMode != -1) 
     closegraph();
   graphMode = *gm;
-  if(*gd == DETECT || *gd == VGA)
+  if(*gd == DETECT)
   {
     graphMode = VGAHI;
   }
-  if(graphMode < 0 || graphMode > GM_1024x768)
+  if(graphMode < 0 || (graphMode > GM_1024x768 && *gd != CUSTOM))
   {
     graphMode = -1;
     return;
@@ -401,10 +401,15 @@ void initgraph(int * gd, int * gm, const char * path)
     options |= MODE_RGB;
     rgbMode = 1;
   }
-  if(strstr(path, "FULL_SCREEN") != NULL)
+  if(strstr(path, "FULL_SCREEN") != NULL && *gd != CUSTOM)
     options |= MODE_FULLSCREEN;
-  windowWidth = modeResolution[graphMode].x;
-  windowHeight = modeResolution[graphMode].y;
+  if(*gd == CUSTOM) {
+    windowWidth = *gm & 0xFFFF;
+    windowHeight = *gm >> 16;
+  } else {
+    windowWidth = modeResolution[graphMode].x;
+    windowHeight = modeResolution[graphMode].y;
+  }
 
   length = windowWidth * windowHeight / 2;
   if(options & MODE_RGB) 
@@ -957,10 +962,17 @@ void  putimage(int left, int top, const void  *bitmap, int op)
   maxx = left + width < windowWidth ? left + width : windowWidth;
 
   BEGIN_DRAW
-    for(y = top; y <= maxy; y++) 
-      for(x = left; x <= maxx; x++)
-        if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
-        put(x, y, *color++);
+    if(op == COPY_PUT) {
+      for(y = top; y <= maxy; y++) 
+        for(x = left; x <= maxx; x++)
+          if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
+            putpixelCOPY(x, y, *color++);
+    } else {
+      for(y = top; y <= maxy; y++) 
+        for(x = left; x <= maxx; x++)
+          if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
+            putpixelXOR(x, y, *color++);
+    }
   END_DRAW
 }
 
