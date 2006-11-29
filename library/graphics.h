@@ -62,16 +62,14 @@ extern "C" {
 #define MOUSE_RIGHTBUTTON  2
 #define MOUSE_MIDDLEBUTTON 4
 
-#define DECLARE_VOID_MAIN extern "C" { void _main(void); };
-#define DECLARE_VOID_MAIN_ARGS extern "C" { void _main(int argc, char ** argv); };
-#define DECLARE_INT_MAIN extern "C" { int _main(void); };
-#define DECLARE_INT_MAIN_ARGS extern "C" { int _main(int argc, char ** argv); };
+#define CUSTOM_MODE(WIDTH, HEIGHT) ((WIDTH & 0xFFFF) | ((HEIGHT & 0xFFFF) << 16))
 
 #define MAXCOLORS 16
 
 enum graphics_drivers {
   DETECT,
-  VGA = DETECT
+  VGA,
+  CUSTOM
 };
 
 enum graphics_errors {      /* graphresult error return codes */
@@ -94,7 +92,7 @@ enum graphics_errors {      /* graphresult error return codes */
 };
 
 enum graphics_mode {
-  VGALO = 1,
+  VGALO,
   VGAMED,
   VGAHI,
   GM_640x480,

@@ -1,29 +1,15 @@
-/*
-  BGI library implementation for Microsoft(R) Windows(TM)
-  Copyright (C) 2006  Daniil Guitelson
-
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or any later version.
-
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
-#include <graphics.h>
+#include "graphics.h"
 #include <math.h>
 
-#define PARTICLE_NUMBER 25
+#define PARTICLE_NUMBER 35
 #define PARTICLE_MASS 1
-#define PARTICLE_RADIUS 5
-#define TIME_DELTA .01
+#define PARTICLE_RADIUS 2
+#define TIME_DELTA .001
+#define LEN_DJ 1
+#define EPS 1e4
+#define NORM (getmaxx() / 20)
+
+int orgX = 0, orgY = 0;
 
 typedef struct tagVECTOR {
   double x, y;
@@ -35,13 +21,45 @@ typedef struct tagPARTICLE {
 } PARTICLE;
 
 PARTICLE particles[PARTICLE_NUMBER] ; // main array;
-PARTICLE particles2[PARTICLE_NUMBER] ;// second, temprory array
+PARTICLE particles2[PARTICLE_NUMBER] ;// second, temporary array
 
-void calcInteraction(PARTICLE * active, PARTICLE * passive, VECTOR * accel) {
-  accel->x = -(active->position.x - passive->position.x) / 10;
-  accel->y = -(active->position.y - passive->position.y) / 10;
+double sqr(double val) {
+  return val * val;
 }
 
+double power (double x, int y)
+{
+	double res ;
+  x /= NORM;
+  res = x;
+	
+	for (; y > 1; --y)
+	{
+		res *= x;
+	}
+	
+	return (1 / res);
+}
+
+//double Power (double x, float y)
+//{
+//	return EXR(LOG(x)* EXP(LOG(y)));
+//}
+
+void calcInteraction(PARTICLE * active, PARTICLE * passive, VECTOR * accel) {
+  //accel->x = -(active->position.x - passive->position.x) / 10;
+  //accel->y = -(active->position.y - passive->position.y) / 10;
+  double dx = active->position.x - passive->position.x;
+  double dy = active->position.y - passive->position.y;
+  double dist = sqrt(sqr(dx) + sqr(dy));
+  double c = dx / dist;
+  double s = dy / dist;
+  double a = EPS*LEN_DJ * (power(dist, 13) - power(dist, 7)) / PARTICLE_MASS;
+  
+  accel->y = 0;
+	accel->x = a * c;
+	accel->y = a * s;
+}
 
 void vectorInit(VECTOR * vec, double x, double y) {
   vec->x = x;
@@ -69,7 +87,8 @@ void updateParticles(PARTICLE * ps, PARTICLE * tmp) {
   for(i = 0; i != PARTICLE_NUMBER; i++) {
     vectorInit(&summAccel, 0, 0);
     for(j = 0; j != PARTICLE_NUMBER; j++) {
-      calcInteraction(ps + i, ps + j, &accel);
+      if (i == j) continue;
+	    calcInteraction(ps + i, ps + j, &accel);
       vectorAdd(&summAccel, &accel);
     }
     updateParticle(ps + i, tmp + i, &summAccel);
@@ -83,49 +102,77 @@ void drawParticles(PARTICLE * ps) {
   int h = getmaxy() / 2;
   for(i = 0; i != PARTICLE_NUMBER; i++) {
     setcolor((i % getmaxcolor()) + 1);
-    circle(w + ps[i].position.x, h - ps[i].position.y, PARTICLE_RADIUS);
+    circle(w + ps[i].position.x + orgX, h - ps[i].position.y - orgY, PARTICLE_RADIUS);
   }
 }
 
-void initParticle(PARTICLE * p) {
-  p->position.x = PARTICLE_RADIUS + (rand() % (getmaxx() / 2 - PARTICLE_RADIUS)) - getmaxx() / 2;
-  p->position.y = PARTICLE_RADIUS + (rand() % (getmaxy() / 2 - PARTICLE_RADIUS)) - getmaxy() / 2;
-  p->speed.x = 0;
-  p->speed.y = 0;
+int intersectsAny(PARTICLE * p, int n) {
+  int i;
+  for(i = 0; i != n; i++) {
+    if((sqr(p->position.x - particles[i].position.x)) 
+      + sqr(p->position.y - particles[i].position.y) < sqr(4 * PARTICLE_RADIUS)) {
+        return 1;
+    }
+  }
+  return 0;
+}
+
+void initParticle(PARTICLE * p, int n) {
+  const int maxSpeed = 500;
+  do {
+    p->position.x = PARTICLE_RADIUS + (rand() % (getmaxx() - 2 * PARTICLE_RADIUS)) - getmaxx() / 2;
+    p->position.y = PARTICLE_RADIUS + (rand() % (getmaxy() - 2 * PARTICLE_RADIUS)) - getmaxy() / 2;
+  } while(intersectsAny(p, n));
+  p->speed.x = (rand() % maxSpeed) - maxSpeed / 2;
+  p->speed.y = (rand() % maxSpeed) - maxSpeed / 2;
 }
 
 void initParticles(PARTICLE * ps) {
   int i;
+   
   srand(clock());
+
   for(i = 0; i != PARTICLE_NUMBER; i++) {
-    initParticle(ps + i);
+    initParticle(ps + i, i);
+	/*if (ps->position.x == (ps + i)->position.x || 
+		ps->position.y == (ps + i)->position.y ||
+		ps->speed.x == (ps + i)->speed.x ||
+		ps->speed.y == (ps + i)->speed.y)*/
   }
 }
 
 void main(void) {
-  int gd = DETECT, gm = 0;
+  int gd = CUSTOM, gm = CUSTOM_MODE(1024,768);
   int page = 0;
+  g_mousestate curState;
+  g_mousestate oldState;
+  int scrolling = 0;
+  
   initgraph(&gd, &gm, "");
+  
   initParticles(particles);
+  
   while(!anykeypressed()) {
+    getmousestate(&curState);
+    if((curState.buttons & MOUSE_LEFTBUTTON) == 0) {
+      scrolling = 0;
+    } else {
+      if(scrolling == 0) {
+        scrolling = 1;
+        getmousestate(&oldState);
+      } else {
+        orgX -= -curState.x + oldState.x;
+        orgY += -curState.y + oldState.y;
+        oldState = curState;
+      }
+    }
     updateParticles(particles, particles2);
-    setactivepage(1 - page);
+	  setactivepage(1 - page);
     cleardevice();
-    drawParticles(particles);
-    setvisualpage(1 - page);
+	  drawParticles(particles);
+	  setvisualpage(1 - page);
     page = 1 - page;
-    delay(10);
+	  delay(4);
   }
   closegraph();
 }
-
-
-
-
-
-
-
-
-
-
-
