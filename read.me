@@ -19,7 +19,12 @@ Same works anykeypressed()
  
 Works as in old dos BGI but with some useful extensions:
 
-  '*gd' can be DETECT or VGA (they are equivalent) 
+  '*gd' can be DETECT,VGA (they are equivalent), CUSTOM. CUSTOM is for user-defined window
+        size. example : 
+          gd = CUSTOM; 
+          gm = CUSTOM_MODE(500,400); 
+          initgraph(&gd, &gm,""); 
+        this will set window 500x400. you can not use CUSTOM gd with FULL_SCREEN option.
   
   '*gm' can be VGAHI, VGALO, VGAMED , they has width and height
             same as it had in dos BGI. Also there are extension modes:
