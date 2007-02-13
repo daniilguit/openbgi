@@ -78,6 +78,7 @@ static int rgbMode = 0;
 
 static COLORREF builtinPalette[MAXCOLORS];
 static HBRUSH backBrush;
+static HBRUSH currentBrush;
 static g_pointtype currentPosition;
 static int backColor = BLACK;
 static int penColor = WHITE;
@@ -152,8 +153,8 @@ static void endDraw()
 #define BEGIN_DRAW  CHECK_GRAPHCS_INITED
 #define END_DRAW   endDraw();
 
-#define BEGIN_FILL { BEGIN_DRAW  }
-#define END_FILL { END_DRAW  }
+#define BEGIN_FILL { COLORREF c = translateColor(fillSettings.color); BEGIN_DRAW SetTextColor(activeDC, c);}
+#define END_FILL { COLORREF c = penColor; BEGIN_DRAW SetTextColor(activeDC, c); END_DRAW  }
 
 static void setRect(RECT * r, int x1, int y1, int x2, int y2)
 {
@@ -189,6 +190,12 @@ static void updatePosition(int x, int y)
   currentPosition.y = y;
   MoveToEx(
     activeDC, 
+    TO_ABSOLUTE_X(currentPosition.x), 
+    TO_ABSOLUTE_Y(currentPosition.y),
+    NULL
+    );
+  MoveToEx(
+    windowDC, 
     TO_ABSOLUTE_X(currentPosition.x), 
     TO_ABSOLUTE_Y(currentPosition.y),
     NULL
@@ -230,7 +237,7 @@ static void updatePen(int whatChanged)
   LOGBRUSH br;
   DWORD bits[32] = {0};
 
-  if(whatChanged & CHANGED_STYLE || whatChanged & CHANGED_WIDTH)
+  if(whatChanged & CHANGED_COLOR || whatChanged & CHANGED_STYLE || whatChanged & CHANGED_WIDTH)
   {
     HPEN pen;
     switch(lineSettings.linestyle)
@@ -258,10 +265,6 @@ static void updatePen(int whatChanged)
               );      
     }
     selectObject(pen, 1);
-  } else  {
-    SetDCPenColor(pages[0].dc, c);
-    SetDCPenColor(pages[1].dc, c);
-    SetDCPenColor(windowDC, c);
   }
 
   if(whatChanged & CHANGED_COLOR)
@@ -277,13 +280,11 @@ static void updateBrush(int whatChanged)
   COLORREF c = translateColor(fillSettings.color);
   if(whatChanged & CHANGED_STYLE)
   {
+  	currentBrush = stdBrushes[fillSettings.pattern];
     selectObject(stdBrushes[fillSettings.pattern], 0);
   }
   if(whatChanged & CHANGED_COLOR)
   {
-    SetDCBrushColor(pages[0].dc, c);
-    SetDCBrushColor(pages[1].dc, c);
-    SetDCBrushColor(windowDC, c);
     SetBkColor(pages[0].dc, c);
     SetBkColor(pages[1].dc, c);
     SetBkColor(windowDC, c);
@@ -412,10 +413,14 @@ void initgraph(int * gd, int * gm, const char * path)
   }
 
   length = windowWidth * windowHeight / 2;
-  if(options & MODE_RGB) 
+  fillSettings.pattern = SOLID_FILL;
+  if(options & MODE_RGB) {
     penColor = RGB(0,0,0);
-  else
-    penColor = getmaxcolor();
+    fillSettings.color = RGB(0, 0, 0);
+  }
+  else {
+    fillSettings.color = penColor = getmaxcolor();
+  }
   
   BGI_startServer(windowWidth, windowHeight, options);
   
@@ -474,16 +479,21 @@ void arc(int x, int y, int stangle, int endangle, int radius)
   arcCoords.yend = y + radius * sin(endangle);*/
 }
 
+
+void  bar_(int left, int top, int right, int bottom)
+{
+  RECT r;
+  r.left = TO_ABSOLUTE_X(left);
+  r.top = TO_ABSOLUTE_Y(top);
+  r.right = TO_ABSOLUTE_X(right);
+  r.bottom = TO_ABSOLUTE_Y(bottom);
+  FillRect(activeDC, &r, currentBrush); 
+}
+
 void  bar(int left, int top, int right, int bottom)
 {
   BEGIN_FILL
-    Rectangle(
-      activeDC,
-      TO_ABSOLUTE_X(left),
-      TO_ABSOLUTE_Y(top),
-      TO_ABSOLUTE_X(right),
-      TO_ABSOLUTE_Y(bottom)
-      );
+    bar_(left, top, right, bottom); 
   END_FILL
 }
 
@@ -491,13 +501,7 @@ void  bar3d(int left, int top, int right, int bottom, int depth, int topflag)
 {
   int hdep = depth * 3 / 5;
   BEGIN_FILL
-    Rectangle(
-      activeDC,
-      TO_ABSOLUTE_X(left),
-      TO_ABSOLUTE_Y(top),
-      TO_ABSOLUTE_X(right),
-      TO_ABSOLUTE_Y(bottom)
-      );
+  	bar_(left, top, right, bottom);
     if(topflag) 
     {
       moveto(left, top);
@@ -934,27 +938,10 @@ static void putpixelXOR(int x, int y, int color)
   PUTPIXEL(x, y, color, ^=);
 }
 
-static void putpixelOR(int x, int y, int color)
-{
-  PUTPIXEL(x, y, color, |=);
-}
-
-static void putpixelAND(int x, int y, int color)
-{
-  PUTPIXEL(x, y, color, &=);
-}
-
-static void putpixelNOT(int x, int y, int color)
-{
-  PUTPIXEL(x, y, color, =!);
-}
-
 void  putimage(int left, int top, const void  *bitmap, int op)
 {
   typedef void ( *PUTPIXEL_PROC)(int x, int y, int color);
   
-  static PUTPIXEL_PROC puts[] = {putpixelCOPY, putpixelXOR, putpixelOR, putpixelAND, putpixelNOT};
-  PUTPIXEL_PROC put = puts[op];
   int x, y, width = ((int *)bitmap)[0], height = ((int *)bitmap)[1];
   int * color= (int *)bitmap + 2;
   int maxx, maxy;

@@ -48,8 +48,6 @@ static int systemKey(int key)
 {
   switch(key)
   {
-  case VK_ESCAPE:
-  case VK_BACK:
   case VK_LEFT:
   case VK_RIGHT:
   case VK_UP:
@@ -58,7 +56,8 @@ static int systemKey(int key)
   case VK_END:
   case VK_INSERT:
   case VK_DELETE:
-  case VK_SELECT:
+  case VK_NEXT:
+  case VK_PRIOR:
     return 1;
   }
   if(key >= VK_F1 && key <= VK_F12)
@@ -140,6 +139,10 @@ static LRESULT WINAPI MainWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
           keyProcessed = 1;
           IPC_raiseEvent(sharedObjects.keyboardEvent);
         }
+      } 
+      else 
+      {
+          keyProcessed = 0;
       }
     }
     break;
