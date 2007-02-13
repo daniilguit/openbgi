@@ -1,4 +1,4 @@
-#include "graphics.h"
+#include <graphics.h>
 #include <math.h>
 
 #define PARTICLE_NUMBER 35
@@ -167,12 +167,12 @@ void main(void) {
       }
     }
     updateParticles(particles, particles2);
-	  setactivepage(1 - page);
-    cleardevice();
-	  drawParticles(particles);
-	  setvisualpage(1 - page);
+	setactivepage(1 - page);
+    clearviewport();
+	drawParticles(particles);
+	setvisualpage(1 - page);
     page = 1 - page;
-	  delay(4);
+	delay(4);
   }
   closegraph();
 }

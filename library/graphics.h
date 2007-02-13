@@ -20,7 +20,12 @@
 #ifndef __BGI_GRAPHICS_H__
 #define __BGI_GRAPHICS_H__
 
+#ifndef _MSC_VER
+  #define _WIN_VER 0x500
+#endif
+
 #include <Windows.h>
+
 
 #ifdef _MSC_VER
   #pragma comment(lib, "kernel32")
@@ -39,13 +44,15 @@ extern "C" {
 #define KEY_LEFT   75
 #define KEY_RIGHT  77
 #define KEY_ENTER  '\n'
-#define KEY_END    0
-#define KEY_HOME   0
-#define KEY_INSERT 0
-#define KEY_DELETE 0
+#define KEY_END    79
+#define KEY_HOME   71
+#define KEY_INSERT 82
+#define KEY_DELETE 83
 #define KEY_ESCAPE 27
 #define KEY_SHIFT  0
 #define KEY_CONTRL 0
+#define KEY_PGUP   73
+#define KEY_PGDOWN 81
 #define KEY_F1     59
 #define KEY_F2     60
 #define KEY_F3     61

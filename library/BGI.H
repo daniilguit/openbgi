@@ -20,6 +20,9 @@
 #ifndef __BGI_H__
 #define __BGI_H__
 
+#ifndef _MSC_VER
+  #define _WIN_VER 0x500
+#endif
 #include <windows.h>
 
 #define MODE_16  0

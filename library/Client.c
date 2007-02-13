@@ -191,6 +191,10 @@ static int translateKeyCode(int code)
   case VK_BACK:
     return(KEY_BACK);
   }
+  if(code >= VK_F1 && code <= VK_F12) 
+  {
+      return code - VK_F1 + KEY_F1;
+  }
   return code;
 }
 
