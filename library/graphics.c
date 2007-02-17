@@ -428,6 +428,8 @@ void initgraph(int * gd, int * gm, const char * path)
   pages = BGI_getPages();
   initPallette();
 
+  memset(&viewPort, 0, sizeof(viewPort));
+
   backBrush = CreateSolidBrush(0);
   sharedStruct = BGI_getSharedStruct();
   
