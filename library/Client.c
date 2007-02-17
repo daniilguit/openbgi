@@ -171,7 +171,7 @@ static int translateKeyCode(int code)
   case VK_SPACE:
     return ' ';
   case VK_SELECT:
-    return '\n';
+    return KEY_ENTER;
   case VK_INSERT:
     return(KEY_INSERT);
   case VK_HOME:
