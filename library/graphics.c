@@ -429,6 +429,8 @@ void initgraph(int * gd, int * gm, const char * path)
   initPallette();
 
   memset(&viewPort, 0, sizeof(viewPort));
+  viewPort.right = getmaxx();
+  viewPort.bottom = getmaxy();
 
   backBrush = CreateSolidBrush(0);
   sharedStruct = BGI_getSharedStruct();
