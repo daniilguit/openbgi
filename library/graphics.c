@@ -415,8 +415,8 @@ void initgraph(int * gd, int * gm, const char * path)
   length = windowWidth * windowHeight / 2;
   fillSettings.pattern = SOLID_FILL;
   if(options & MODE_RGB) {
-    penColor = RGB(0,0,0);
-    fillSettings.color = RGB(0, 0, 0);
+    penColor = RGB(255,255,255);
+    fillSettings.color = RGB(255, 255, 255);
   }
   else {
     fillSettings.color = penColor = getmaxcolor();
@@ -761,7 +761,7 @@ char *  getmodename( int mode_number )
 
 void  getmoderange(int graphdriver, int  *lomode, int *himode)
 {
-  (void)graphdriver; // this prevent waring of unused graphdriver
+  (void)graphdriver; // this prevents waring of unused graphdriver
                      // it presents only for compatibility with Borland
                      // implementation
   *lomode = VGALO;
@@ -774,9 +774,12 @@ unsigned getpixel(int x, int y)
   int delta = index % 2 ? 0 : 4;
   x = TO_ABSOLUTE_X(x);
   y = TO_ABSOLUTE_Y(y);
-  if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
-    return (activeBits[index / 2] & (0xF << delta)) >> delta;
-  //return GetPixel(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y));
+  if(rgbMode) {
+    return GetPixel(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y));
+  } else {
+    if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
+      return (activeBits[index / 2] & (0xF << delta)) >> delta;
+  }
   return 0;
 }
 
@@ -971,8 +974,15 @@ void  putpixel(int x, int y, int color)
 {
   //static counter = 0;
   CHECK_GRAPHCS_INITED
-  if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
-    putpixelCOPY(TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), color);
+  if(rgbMode) 
+  {
+    SetPixelV(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
+  }
+  else
+  {
+    if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
+      putpixelCOPY(TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), color);
+  }
   if(activePageIndex == sharedStruct->visualPage)
     SetPixelV(windowDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
 }
