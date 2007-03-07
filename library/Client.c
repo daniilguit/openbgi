@@ -166,12 +166,6 @@ static int translateKeyCode(int code)
 {
   switch(code)
   {
-  case VK_ESCAPE:
-    return KEY_ESCAPE;
-  case VK_SPACE:
-    return ' ';
-  case VK_SELECT:
-    return KEY_ENTER;
   case VK_INSERT:
     return(KEY_INSERT);
   case VK_HOME:
@@ -186,10 +180,6 @@ static int translateKeyCode(int code)
     return(KEY_UP);
   case VK_DOWN:
     return(KEY_DOWN);
-  case VK_TAB:
-    return(KEY_TAB);
-  case VK_BACK:
-    return(KEY_BACK);
   }
   if(code >= VK_F1 && code <= VK_F12) 
   {
