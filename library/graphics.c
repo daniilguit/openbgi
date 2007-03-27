@@ -489,8 +489,8 @@ void  bar_(int left, int top, int right, int bottom)
   RECT r;
   r.left = TO_ABSOLUTE_X(left);
   r.top = TO_ABSOLUTE_Y(top);
-  r.right = TO_ABSOLUTE_X(right);
-  r.bottom = TO_ABSOLUTE_Y(bottom);
+  r.right = TO_ABSOLUTE_X(right + 1);
+  r.bottom = TO_ABSOLUTE_Y(bottom + 1);
   FillRect(activeDC, &r, currentBrush); 
 }
 
@@ -543,7 +543,7 @@ void  circle(int x, int y, int radius)
 void  cleardevice(void)
 {
   RECT r;
-  setRect(&r, 0, 0, windowWidth, windowHeight);
+  setRect(&r, 0, 0, windowWidth + 1, windowHeight + 1);
   BEGIN_FILL
     FillRect(activeDC, &r, backBrush);
   END_FILL
@@ -552,7 +552,7 @@ void  cleardevice(void)
 void  clearviewport(void)
 {
   RECT r;
-  setRect(&r, viewPort.left, viewPort.top, viewPort.right, viewPort.bottom);
+  setRect(&r, viewPort.left, viewPort.top, viewPort.right + 1, viewPort.bottom + 1);
   BEGIN_DRAW
     FillRect(activeDC, &r, backBrush);
   END_DRAW
@@ -926,10 +926,16 @@ void  pieslice(int x, int y, int stangle, int endangle, int radius)
   END_DRAW
 }
 
-#define PUTPIXEL(X,Y,COLOR, OP)\
+#define PUTPIXEL_16(X,Y,COLOR, OP) {\
   int index = X + (windowHeight - Y - 1) * windowWidth;\
   int delta = X % 2 ? 0 : 4;\
-  activeBits[index / 2] OP (BYTE)((COLOR & 0xF) << delta)
+  activeBits[index / 2] OP (BYTE)((COLOR & 0xF) << delta);\
+}
+
+#define PUTPIXEL_32(X,Y,COLOR, OP) {\
+  int index = X + (windowHeight - Y - 1) * windowWidth;\
+  ((int *)activeBits)[index] OP COLOR;\
+}
 
 
 static void putpixelCOPY(int x, int y, int color)
@@ -942,7 +948,7 @@ static void putpixelCOPY(int x, int y, int color)
 
 static void putpixelXOR(int x, int y, int color)
 {
-  PUTPIXEL(x, y, color, ^=);
+  PUTPIXEL_16(x, y, color, ^=);
 }
 
 void  putimage(int left, int top, const void  *bitmap, int op)
@@ -956,17 +962,31 @@ void  putimage(int left, int top, const void  *bitmap, int op)
   maxx = left + width < windowWidth ? left + width : windowWidth;
 
   BEGIN_DRAW
-    if(op == COPY_PUT) {
-      for(y = top; y <= maxy; y++) 
-        for(x = left; x <= maxx; x++)
-          if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
-            putpixelCOPY(x, y, *color++);
-    } else {
-      for(y = top; y <= maxy; y++) 
-        for(x = left; x <= maxx; x++)
-          if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
-            putpixelXOR(x, y, *color++);
-    }
+   if(rgbMode) {
+        if(op == COPY_PUT) {
+          for(y = top; y <= maxy; y++) 
+            for(x = left; x <= maxx; x++)
+              if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
+               putpixelCOPY(x, y, *color++);
+        } else {
+          for(y = top; y <= maxy; y++) 
+            for(x = left; x <= maxx; x++)
+              if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
+                putpixelXOR(x, y, *color++);
+        }
+   } else {
+        if(op == COPY_PUT) {
+          for(y = top; y <= maxy; y++) 
+            for(x = left; x <= maxx; x++)
+              if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
+                PUTPIXEL_32(x, y, *color++, =);
+        } else {
+          for(y = top; y <= maxy; y++) 
+            for(x = left; x <= maxx; x++)
+              if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
+                PUTPIXEL_32(x, y, *color++, ^=);
+        }
+   }
   END_DRAW
 }
 
