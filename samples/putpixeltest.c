@@ -1,6 +1,18 @@
 #include <graphics.h>
 #include <assert.h>
 
+void mybar(int x, int y, int w, int h, int c)
+{
+    int i, j;
+    for(i = y; i <= y + h; i++) 
+    {
+        for(j = x; j <= x + h; j++)
+        {
+            putpixel(j, i, c);
+        }
+    }
+}
+
 int main() 
 {
     int gd = DETECT, gm = 0;
@@ -20,6 +32,10 @@ int main()
     closegraph();
     initgraph(&gd, &gm, "RGB");
     outtext("RGB mode test");
+    mybar(0, 10, 10, 10, RED);
+    mybar(10, 10, 10, 10, GREEN);
+    mybar(20, 10, 10, 10, BLUE);
+
     putpixel(0,0,GREEN);
     putpixel(getmaxx(), 0, BLUE);
     putpixel(0, getmaxy(), WHITE);

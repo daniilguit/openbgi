@@ -22,6 +22,10 @@
 
 #include <windows.h>
 
+/**
+ * Wrappers around windows events API. Written just for more
+ * meaning names.
+ */
 HANDLE IPC_createEvent(const char * name);
 HANDLE IPC_openEvent(const char * name);
 HANDLE IPC_createMutex(const char * name, int owned);
@@ -31,6 +35,10 @@ void IPC_unlockMutex(HANDLE mutex);
 
 void IPC_raiseEvent(HANDLE event);
 void IPC_waitEvent(HANDLE event);
+
+/**
+ * Wrappers around windows inter process memory sharing API
+ */
 HANDLE IPC_createSection(const char * name, int size);
 HANDLE IPC_openSection(const char * name);
 void * IPC_createSharedMemory(const char * name, int size);

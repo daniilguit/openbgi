@@ -20,13 +20,6 @@
 #ifndef __BGI_GRAPHICS_H__
 #define __BGI_GRAPHICS_H__
 
-#ifndef _MSC_VER
-  #define _WIN_VER 0x500
-#endif
-
-#include <Windows.h>
-
-
 #ifdef _MSC_VER
   #pragma comment(lib, "kernel32")
   #pragma comment(lib, "user32")
@@ -166,33 +159,48 @@ enum putimage_ops {/* BitBlt operators for putimage */
 
 enum text_just {   /* Horizontal and vertical justification
                    for settextjustify */
-  LEFT_TEXT   = TA_LEFT,
-  CENTER_TEXT = TA_CENTER,
-  RIGHT_TEXT  = TA_RIGHT,
+  LEFT_TEXT   = 0,
+  CENTER_TEXT = 6,
+  RIGHT_TEXT  = 2,
 
-  BOTTOM_TEXT = TA_BOTTOM,
+  BOTTOM_TEXT = 8,
   /* CENTER_TEXT = 1,  already defined above */
-  TOP_TEXT    = TA_TOP
+  TOP_TEXT    = 0
 };
 
-enum COLORS {
-  BLACK,          /* dark colors */
-  BLUE,
-  GREEN,
-  CYAN,
-  RED,
-  MAGENTA,
-  BROWN,
-  LIGHTGRAY,
-  DARKGRAY,       /* light colors */
-  LIGHTBLUE,
-  LIGHTGREEN,
-  LIGHTCYAN,
-  LIGHTRED,
-  LIGHTMAGENTA,
-  YELLOW,
-  WHITE
+enum _COLORS {
+  _BLACK,          /* dark colors */
+  _BLUE,
+  _GREEN,
+  _CYAN,
+  _RED,
+  _MAGENTA,
+  _BROWN,
+  _LIGHTGRAY,
+  _DARKGRAY,       /* light colors */
+  _LIGHTBLUE,
+  _LIGHTGREEN,
+  _LIGHTCYAN,
+  _LIGHTRED,
+  _LIGHTMAGENTA,
+  _YELLOW,
+  _WHITE
 };
+
+#define BLACK (_getabsolutecolor(_BLACK))
+#define BLUE (_getabsolutecolor(_BLUE))
+#define GREEN (_getabsolutecolor(_GREEN))
+#define CYAN (_getabsolutecolor(_CYAN))
+#define RED (_getabsolutecolor(_RED))
+#define MAGENTA (_getabsolutecolor(_MAGENTA))
+#define BROWN (_getabsolutecolor(_BROWN))
+#define LIGHTGRAY (_getabsolutecolor(_LIGHTGRAY))
+#define DARKGRAY (_getabsolutecolor(_DARKGRAY))
+#define LIGHTBLUE (_getabsolutecolor(_LIGHTBLUE))
+#define LIGHTCYAN (_getabsolutecolor(_LIGHTCYAN))
+#define LIGHTRED (_getabsolutecolor(_LIGHTRED))
+#define YELLOW (_getabsolutecolor(_YELLOW))
+#define WHITE (_getabsolutecolor(_WHITE))
 
 
 typedef unsigned int colortype;
@@ -240,7 +248,9 @@ typedef struct arccoordstype {
   int xstart, ystart, xend, yend;
 } g_arccoordstype;
 
-
+/**
+ * Public functionality
+ */
 extern void arc(int x, int y, int stangle, int endangle, int radius);
 extern void bar(int left, int top, int right, int bottom);
 extern void bar3d(int left, int top, int right, int bottom, int depth, int topflag);
@@ -312,6 +322,9 @@ extern void setwritemode( int mode );
 extern int textheight(const char  *textstring);
 extern int textwidth(const char  *textstring);
 
+/*
+ * Extended functionality
+ */
 extern void delay(int miliSeconds);
 extern int readkey();
 extern int keypressed(int key);
@@ -319,6 +332,13 @@ extern int anykeypressed();
 extern int getfps();
 extern void getmousestate(g_mousestate * state);
 extern void setmousepos(int x, int y);
+extern int rgb(int r, int g, int b);
+
+/*
+ * For internal use only
+ */
+
+extern int _getabsolutecolor(int colorid);
 
 #ifdef __cplusplus
 }
