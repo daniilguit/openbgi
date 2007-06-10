@@ -17,6 +17,12 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifndef _MSC_VER
+  #define _WIN_VER 0x500
+#endif
+
+#include <Windows.h>
+
 #include "BGI.h"
 #include "graphics.h"
 
@@ -80,8 +86,8 @@ static COLORREF builtinPalette[MAXCOLORS];
 static HBRUSH backBrush;
 static HBRUSH currentBrush;
 static g_pointtype currentPosition;
-static int backColor = BLACK;
-static int penColor = WHITE;
+static int backColor = _BLACK;
+static int penColor = _WHITE;
 
 static g_arccoordstype arcCoords;
 
@@ -114,7 +120,7 @@ static unsigned short patternsBits[USER_FILL + 1][8] =
 static COLORREF translateColor(int color)
 {
   if(rgbMode)
-    return (COLORREF)color;
+    return (COLORREF)RGB(color >> 16, (color >> 8) & 0xFF, color & 0xFF);
   return builtinPalette[palette.colors[color % MAXCOLORS]];
 }
 
@@ -770,15 +776,16 @@ void  getmoderange(int graphdriver, int  *lomode, int *himode)
 
 unsigned getpixel(int x, int y)
 {
-  int index = TO_ABSOLUTE_X(x) + (windowHeight - TO_ABSOLUTE_Y(y) - 1) * windowWidth;
-  int delta = index % 2 ? 0 : 4;
   x = TO_ABSOLUTE_X(x);
   y = TO_ABSOLUTE_Y(y);
   if(rgbMode) {
-    return GetPixel(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y));
+    return ((unsigned *)activeBits)[x + (windowHeight - y - 1) * windowWidth];
   } else {
-    if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
+    int index = TO_ABSOLUTE_X(x) + (windowHeight - TO_ABSOLUTE_Y(y) - 1) * windowWidth;
+    int delta = index % 2 ? 0 : 4;
+    if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight) {
       return (activeBits[index / 2] & (0xF << delta)) >> delta;
+    }
   }
   return 0;
 }
@@ -932,9 +939,8 @@ void  pieslice(int x, int y, int stangle, int endangle, int radius)
   activeBits[index / 2] OP (BYTE)((COLOR & 0xF) << delta);\
 }
 
-#define PUTPIXEL_32(X,Y,COLOR, OP) {\
-  int index = X + (windowHeight - Y - 1) * windowWidth;\
-  ((int *)activeBits)[index] OP COLOR;\
+#define PUTPIXEL_RGB(X,Y,COLOR, OP) {\
+  ((int *)activeBits)[X + (windowHeight - Y - 1) * windowWidth] OP COLOR;\
 }
 
 
@@ -979,12 +985,12 @@ void  putimage(int left, int top, const void  *bitmap, int op)
           for(y = top; y <= maxy; y++) 
             for(x = left; x <= maxx; x++)
               if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
-                PUTPIXEL_32(x, y, *color++, =);
+                PUTPIXEL_RGB(x, y, *color++, =);
         } else {
           for(y = top; y <= maxy; y++) 
             for(x = left; x <= maxx; x++)
               if( y >= 0 && y <= windowHeight && x >= 0 && y <= windowWidth)
-                PUTPIXEL_32(x, y, *color++, ^=);
+                PUTPIXEL_RGB(x, y, *color++, ^=);
         }
    }
   END_DRAW
@@ -994,17 +1000,20 @@ void  putpixel(int x, int y, int color)
 {
   //static counter = 0;
   CHECK_GRAPHCS_INITED
+  x = TO_ABSOLUTE_X(x);
+  y = TO_ABSOLUTE_Y(y);
   if(rgbMode) 
   {
-    SetPixelV(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
+    ((unsigned *)activeBits)[x + (windowHeight - y - 1) * windowWidth] = color;
+    //SetPixelV(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
   }
   else
   {
     if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
-      putpixelCOPY(TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), color);
+      putpixelCOPY(x, y, color);
   }
   if(activePageIndex == sharedStruct->visualPage)
-    SetPixelV(windowDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
+    SetPixelV(windowDC, x, y, translateColor(color));
 }
 
 void  rectangle(int left, int top, int right, int bottom)
@@ -1292,4 +1301,21 @@ int readkey()
   return BGI_getch();
 }
 
+int rgb(int r, int g, int b)
+{
+    return (b & 0xFF) | ((g & 0xFF) << 8) | ((r & 0xFF) << 16);
+}
+
+int _getabsolutecolor(int c) 
+{
+    if(rgbMode) 
+    {
+        return    rgb(
+                    BGI_default_palette[c].rgbRed,
+                    BGI_default_palette[c].rgbGreen,
+                    BGI_default_palette[c].rgbBlue
+                    );
+    }
+    return c;
+}
 
