@@ -32,11 +32,11 @@ Works as in old dos BGI but with some useful extensions:
   'path' can be empty string, since no old BGI driver are used,
               but it can contains some extension substrings
               (that are tested by strstr so you can use any delimiter
-              not use delimiters at all)
+              or not use delimiters at all)
 
               "RGB" - use rgb mode instead of 16 colors (so you use RGB(,,) macros
                       to generate appropreate color for setcolor, etc. 
-                      Std colors constants are useless in this mode.
+                      You can use color constants in RGB mode too.
 
               "SHOW_INVISIBLE_PAGE" - two graphics window will be 
                                       present on the screen : normal and

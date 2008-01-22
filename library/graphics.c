@@ -40,7 +40,7 @@
 #define TO_ABSOLUTE_X(X) ((int)((viewPort.left + X) * aspectRatio.x))
 #define TO_ABSOLUTE_Y(Y) ((int)((viewPort.top + Y) * aspectRatio.y))
 #define TO_RELATIVE_X(X) ((int)((X - viewPort.left) / aspectRatio.x))
-#define TO_RELATIVE_Y(Y) ((int)((Y - viewPort.right) / aspectRatio.y))
+#define TO_RELATIVE_Y(Y) ((int)((Y - viewPort.top) / aspectRatio.y))
 
 enum WhatChanged
 {
@@ -214,7 +214,7 @@ static void retrivePosition()
   MoveToEx(activeDC, currentPosition.x, currentPosition.y, NULL);
   
   currentPosition.x = TO_RELATIVE_X(currentPosition.x);
-  currentPosition.y = TO_RELATIVE_X(currentPosition.y);
+  currentPosition.y = TO_RELATIVE_Y(currentPosition.y);
 }
 
 static int convertToBits(DWORD bits[32], int pattern)
