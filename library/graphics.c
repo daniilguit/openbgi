@@ -37,11 +37,6 @@
 #define M_PI       3.14159265358979323846
 #endif
 
-#define TO_ABSOLUTE_X(X) ((int)((viewPort.left + X) * aspectRatio.x))
-#define TO_ABSOLUTE_Y(Y) ((int)((viewPort.top + Y) * aspectRatio.y))
-#define TO_RELATIVE_X(X) ((int)((X - viewPort.left) / aspectRatio.x))
-#define TO_RELATIVE_Y(Y) ((int)((Y - viewPort.top) / aspectRatio.y))
-
 enum WhatChanged
 {
   CHANGED_STYLE = 1,
@@ -196,14 +191,14 @@ static void updatePosition(int x, int y)
   currentPosition.y = y;
   MoveToEx(
     activeDC, 
-    TO_ABSOLUTE_X(currentPosition.x), 
-    TO_ABSOLUTE_Y(currentPosition.y),
+    (currentPosition.x), 
+    (currentPosition.y),
     NULL
     );
   MoveToEx(
     windowDC, 
-    TO_ABSOLUTE_X(currentPosition.x), 
-    TO_ABSOLUTE_Y(currentPosition.y),
+    (currentPosition.x), 
+    (currentPosition.y),
     NULL
     );
 }
@@ -213,8 +208,8 @@ static void retrivePosition()
   MoveToEx(activeDC, 0, 0, (POINT *)(void *)&currentPosition);
   MoveToEx(activeDC, currentPosition.x, currentPosition.y, NULL);
   
-  currentPosition.x = TO_RELATIVE_X(currentPosition.x);
-  currentPosition.y = TO_RELATIVE_Y(currentPosition.y);
+  currentPosition.x = (currentPosition.x);
+  currentPosition.y = (currentPosition.y);
 }
 
 static int convertToBits(DWORD bits[32], int pattern)
@@ -342,6 +337,8 @@ static void updateViewport()
 {
   if(viewPort.clip)
   {
+	  SetViewportOrgEx(pages[0].dc, viewPort.left, viewPort.top, NULL);
+	  SetViewportOrgEx(pages[1].dc, viewPort.left, viewPort.top, NULL);
     selectObject(
       CreateRectRgn(
         viewPort.left, 
@@ -472,8 +469,8 @@ void arc(int x, int y, int stangle, int endangle, int radius)
 
   AngleArc(
     activeDC,
-    TO_ABSOLUTE_X(x),
-    TO_ABSOLUTE_Y(y),
+    (x),
+    (y),
     radius,
     (FLOAT)stangle, 
     (FLOAT)(endangle - stangle)
@@ -493,10 +490,10 @@ void arc(int x, int y, int stangle, int endangle, int radius)
 void  bar_(int left, int top, int right, int bottom)
 {
   RECT r;
-  r.left = TO_ABSOLUTE_X(left);
-  r.top = TO_ABSOLUTE_Y(top);
-  r.right = TO_ABSOLUTE_X(right + 1);
-  r.bottom = TO_ABSOLUTE_Y(bottom + 1);
+  r.left = (left);
+  r.top = (top);
+  r.right = (right + 1);
+  r.bottom = (bottom + 1);
   FillRect(activeDC, &r, currentBrush); 
 }
 
@@ -530,10 +527,10 @@ void circle_(HDC dc, int x, int y, int radius)
   BEGIN_DRAW
     Arc(
       dc, 
-      TO_ABSOLUTE_X(x - radius),
-      TO_ABSOLUTE_Y(y - radius),
-      TO_ABSOLUTE_X(x + radius),
-      TO_ABSOLUTE_Y(y + radius),
+      (x - radius),
+      (y - radius),
+      (x + radius),
+      (y + radius),
       0, 0, 0, 0
       );
   END_DRAW
@@ -588,8 +585,8 @@ void  drawpoly(int numpoints, const int  *polypoints)
   points = malloc(numpoints * sizeof(POINT));
   for(i = 0; i != numpoints; i++)
   {
-    points[i].x = TO_ABSOLUTE_X(*polypoints++);
-    points[i].y = TO_ABSOLUTE_Y(*polypoints++);
+    points[i].x = (*polypoints++);
+    points[i].y = (*polypoints++);
   }
   BEGIN_DRAW
     Polyline(activeDC, points, numpoints);
@@ -601,14 +598,14 @@ void ellipse_(HDC dc, int x, int y, int stangle, int endangle, int xradius, int 
 {
   Arc(
     dc,
-    TO_ABSOLUTE_X(x - xradius), 
-    TO_ABSOLUTE_Y(y - yradius),
-    TO_ABSOLUTE_X(x + xradius),
-    TO_ABSOLUTE_Y(y + yradius),
-    TO_ABSOLUTE_X(x + xradius * cos(DEG_TO_RAD(stangle))),
-    TO_ABSOLUTE_Y(y - yradius * sin(DEG_TO_RAD(stangle))),
-    TO_ABSOLUTE_X(x + xradius * cos(DEG_TO_RAD(endangle))),
-    TO_ABSOLUTE_Y(y - yradius * sin(DEG_TO_RAD(endangle)))
+    (x - xradius), 
+    (y - yradius),
+    (x + xradius),
+    (y + yradius),
+    (x + xradius * cos(DEG_TO_RAD(stangle))),
+    (y - yradius * sin(DEG_TO_RAD(stangle))),
+    (x + xradius * cos(DEG_TO_RAD(endangle))),
+    (y - yradius * sin(DEG_TO_RAD(endangle)))
     );
 }
 void  ellipse(int x, int y, int stangle, int endangle, int xradius, int yradius)
@@ -627,10 +624,10 @@ void  fillellipse( int x, int y, int xradius, int yradius )
   BEGIN_FILL
       Ellipse(
         activeDC,
-        TO_ABSOLUTE_X(x - xradius),
-        TO_ABSOLUTE_Y(y - yradius),
-        TO_ABSOLUTE_X(x + xradius),
-        TO_ABSOLUTE_Y(y + yradius)
+        (x - xradius),
+        (y - yradius),
+        (x + xradius),
+        (y + yradius)
         );
   END_FILL
 }
@@ -643,8 +640,8 @@ void  fillpoly(int numpoints, const int  *polypoints)
   points = malloc(numpoints * sizeof(POINT));
   for(i = 0; i != numpoints; i++)
   {
-    points[i].x = TO_ABSOLUTE_X(*polypoints++);
-    points[i].y = TO_ABSOLUTE_Y(*polypoints++);
+    points[i].x = (*polypoints++);
+    points[i].y = (*polypoints++);
   }
   BEGIN_FILL
       Polygon(activeDC, points, numpoints);
@@ -776,12 +773,12 @@ void  getmoderange(int graphdriver, int  *lomode, int *himode)
 
 unsigned getpixel(int x, int y)
 {
-  x = TO_ABSOLUTE_X(x);
-  y = TO_ABSOLUTE_Y(y);
+  x = (x);
+  y = (y);
   if(rgbMode) {
     return ((unsigned *)activeBits)[x + (windowHeight - y - 1) * windowWidth];
   } else {
-    int index = TO_ABSOLUTE_X(x) + (windowHeight - TO_ABSOLUTE_Y(y) - 1) * windowWidth;
+    int index = (x) + (windowHeight - (y) - 1) * windowWidth;
     int delta = index % 2 ? 0 : 4;
     if(x >= 0 && x < windowWidth && y >= 0 && y < windowHeight) {
       return (activeBits[index / 2] & (0xF << delta)) >> delta;
@@ -839,13 +836,13 @@ unsigned imagesize(int left, int top, int right, int bottom)
 
 void lineto__(HDC dc, int x, int y)
 {
-  LineTo(dc, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y));
+  LineTo(dc, (x), (y));
 }
 void line_(HDC dc, int x1, int y1, int x2, int y2)
 {
-  MoveToEx(dc, TO_ABSOLUTE_X(x1), TO_ABSOLUTE_Y(y1), NULL);
+  MoveToEx(dc, (x1), (y1), NULL);
   lineto__(dc, x2, y2);
-  SetPixelV(dc, TO_ABSOLUTE_X(x2), TO_ABSOLUTE_Y(y2), translateColor(penColor));
+  SetPixelV(dc, (x2), (y2), translateColor(penColor));
 }
 
 #define BEGIN_LINEDRAW setWriteMode();
@@ -907,8 +904,8 @@ void  outtextxy(int x, int y, const char  *textstring)
     moveto(x, y);
     r = TextOut(
       activeDC,
-      TO_ABSOLUTE_X(x),
-      TO_ABSOLUTE_Y(y),
+      (x),
+      (y),
       textstring,
       (int)strlen(textstring)
       );
@@ -921,14 +918,14 @@ void  pieslice(int x, int y, int stangle, int endangle, int radius)
   BEGIN_DRAW
     Pie(
       activeDC, 
-      TO_ABSOLUTE_X(x - radius), 
-      TO_ABSOLUTE_Y(y - radius), 
-      TO_ABSOLUTE_X(x + radius), 
-      TO_ABSOLUTE_Y(y + radius), 
-      TO_ABSOLUTE_X((int)(x + radius * cos(DEG_TO_RAD(stangle)))), 
-      TO_ABSOLUTE_Y((int)(y - radius * sin(DEG_TO_RAD(stangle)))),
-      TO_ABSOLUTE_X((int)(x + radius * cos(DEG_TO_RAD(endangle)))), 
-      TO_ABSOLUTE_Y((int)(y - radius * sin(DEG_TO_RAD(endangle))))
+      (x - radius), 
+      (y - radius), 
+      (x + radius), 
+      (y + radius), 
+      ((int)(x + radius * cos(DEG_TO_RAD(stangle)))), 
+      ((int)(y - radius * sin(DEG_TO_RAD(stangle)))),
+      ((int)(x + radius * cos(DEG_TO_RAD(endangle)))), 
+      ((int)(y - radius * sin(DEG_TO_RAD(endangle))))
       );
   END_DRAW
 }
@@ -1000,12 +997,12 @@ void  putpixel(int x, int y, int color)
 {
   //static counter = 0;
   CHECK_GRAPHCS_INITED
-  x = TO_ABSOLUTE_X(x);
-  y = TO_ABSOLUTE_Y(y);
+  x = (x);
+  y = (y);
   if(rgbMode) 
   {
     ((unsigned *)activeBits)[x + (windowHeight - y - 1) * windowWidth] = color;
-    //SetPixelV(activeDC, TO_ABSOLUTE_X(x), TO_ABSOLUTE_Y(y), translateColor(color));
+    //SetPixelV(activeDC, (x), (y), translateColor(color));
   }
   else
   {
@@ -1032,19 +1029,19 @@ void  sector( int X, int Y, int StAngle, int EndAngle, int XRadius, int YRadius 
 {
   BEGIN_DRAW
     moveto(
-      TO_ABSOLUTE_X(cos(DEG_TO_RAD(StAngle)) * XRadius), 
-      TO_ABSOLUTE_Y(sin(DEG_TO_RAD(StAngle)) * YRadius)
+      (cos(DEG_TO_RAD(StAngle)) * XRadius), 
+      (sin(DEG_TO_RAD(StAngle)) * YRadius)
       );
     Pie(
       activeDC, 
-      TO_ABSOLUTE_X(X - XRadius), 
-      TO_ABSOLUTE_Y(Y - YRadius), 
-      TO_ABSOLUTE_X(X + XRadius), 
-      TO_ABSOLUTE_Y(Y + YRadius), 
-      TO_ABSOLUTE_X(X + cos(DEG_TO_RAD(StAngle)) * XRadius),
-      TO_ABSOLUTE_Y(Y - sin(DEG_TO_RAD(StAngle)) * YRadius),
-      TO_ABSOLUTE_X(X + cos(DEG_TO_RAD(EndAngle)) * XRadius),
-      TO_ABSOLUTE_Y(Y - sin(DEG_TO_RAD(EndAngle)) * YRadius)
+      (X - XRadius), 
+      (Y - YRadius), 
+      (X + XRadius), 
+      (Y + YRadius), 
+      (X + cos(DEG_TO_RAD(StAngle)) * XRadius),
+      (Y - sin(DEG_TO_RAD(StAngle)) * YRadius),
+      (X + cos(DEG_TO_RAD(EndAngle)) * XRadius),
+      (Y - sin(DEG_TO_RAD(EndAngle)) * YRadius)
       );
   END_DRAW
 }

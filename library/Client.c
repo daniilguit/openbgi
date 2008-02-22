@@ -81,7 +81,7 @@ LPVOID static packParams(int w, int h, int mode)
 void BGI_startServer(int width, int height, int mode)
 {
   int pc;
-  char fileName[128];
+  TCHAR fileName[128];
   window.width = width;
   window.height = height;
   window.mode = mode;
@@ -101,7 +101,7 @@ void BGI_startServer(int width, int height, int mode)
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
     GetModuleFileName(GetModuleHandle(NULL), fileName, sizeof(fileName) / sizeof(char));
-    r = CreateProcess(fileName, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+      r = CreateProcess(fileName, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
     CreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)&BGI_server, (LPVOID)packParams(width, height, mode), 0, 0);
   }
   
