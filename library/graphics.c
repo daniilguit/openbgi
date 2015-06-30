@@ -456,7 +456,7 @@ void initgraph(int * gd, int * gm, const char * path)
 static void lineto_(int x, int y)
 {
   LineTo(activeDC, x, y);
-  SetPixelV(activeDC, x, y, translateColor(penColor));
+  LineTo(activeDC, x, y);
 }
 
 void arc(int x, int y, int stangle, int endangle, int radius)
@@ -577,6 +577,9 @@ void  detectgraph(int  *graphdriver,int  *graphmode)
   *graphmode = VGAHI;
 }
 
+#define BEGIN_LINEDRAW setWriteMode();
+#define END_LINEDRAW unsetWriteMode(); 
+
 void  drawpoly(int numpoints, const int  *polypoints)
 {
   int i;
@@ -588,9 +591,9 @@ void  drawpoly(int numpoints, const int  *polypoints)
     points[i].x = (*polypoints++);
     points[i].y = (*polypoints++);
   }
-  BEGIN_DRAW
+  BEGIN_LINEDRAW
     Polyline(activeDC, points, numpoints);
-  END_DRAW
+  END_LINEDRAW
   free(points);
 }
 
@@ -845,9 +848,6 @@ void line_(HDC dc, int x1, int y1, int x2, int y2)
   SetPixelV(dc, (x2), (y2), translateColor(penColor));
 }
 
-#define BEGIN_LINEDRAW setWriteMode();
-#define END_LINEDRAW unsetWriteMode(); 
-
 void  line(int x1, int y1, int x2, int y2)
 {
   BEGIN_LINEDRAW
@@ -1015,13 +1015,13 @@ void  putpixel(int x, int y, int color)
 
 void  rectangle(int left, int top, int right, int bottom)
 {
-  BEGIN_DRAW
+  BEGIN_LINEDRAW
     moveto(left, top);
     lineto_(right, top);
     lineto_(right, bottom);
     lineto_(left, bottom);
     lineto_(left, top);
-  END_DRAW
+  END_LINEDRAW
   updatePosition(right, bottom);
 }
 
